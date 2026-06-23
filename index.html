@@ -1,668 +1,470 @@
-{\rtf1\ansi\ansicpg932\cocoartf2822
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
-
-\f0\fs24 \cf0 <!DOCTYPE html>\
-<html lang="ja">\
-<head>\
-  <meta charset="UTF-8" />\
-  <title>\uc0\u12511 \u12491 \u22235 \u39366  RPM \u12513 \u12540 \u12479 \u12540 </title>\
-  <meta name="viewport" content="width=device-width,initial-scale=1" />\
-  <style>\
-    :root \{\
-      color-scheme: dark;\
-      --bg: #050711;\
-      --fg: #e9f0ff;\
-      --accent: #4ea3ff;\
-      --accent-soft: rgba(78,163,255,0.2);\
-      --danger: #ff4e7a;\
-      --muted: #8c96b5;\
-      --card: #0c1020;\
-      --border: #1b2238;\
-      --radius: 12px;\
-      --shadow: 0 18px 40px rgba(0,0,0,0.55);\
-      --font: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",\
-              "Helvetica Neue", Arial, sans-serif;\
-    \}\
-    * \{ box-sizing: border-box; \}\
-    body \{\
-      margin: 0;\
-      padding: 16px;\
-      font-family: var(--font);\
-      background: radial-gradient(circle at top, #151b3a 0, #050711 55%, #020308 100%);\
-      color: var(--fg);\
-      min-height: 100vh;\
-      display: flex;\
-      justify-content: center;\
-    \}\
-    .app \{\
-      width: 100%;\
-      max-width: 480px;\
-      display: flex;\
-      flex-direction: column;\
-      gap: 12px;\
-    \}\
-    .card \{\
-      background: linear-gradient(145deg, #0b1022, #050814);\
-      border-radius: var(--radius);\
-      border: 1px solid var(--border);\
-      box-shadow: var(--shadow);\
-      padding: 14px 14px 16px;\
-      position: relative;\
-      overflow: hidden;\
-    \}\
-    .card::before \{\
-      content: "";\
-      position: absolute;\
-      inset: -40%;\
-      background:\
-        radial-gradient(circle at 0 0, rgba(78,163,255,0.18), transparent 55%),\
-        radial-gradient(circle at 100% 0, rgba(255,78,122,0.16), transparent 55%);\
-      opacity: 0.6;\
-      pointer-events: none;\
-    \}\
-    .card-inner \{\
-      position: relative;\
-      z-index: 1;\
-    \}\
-    h1 \{\
-      font-size: 18px;\
-      margin: 0 0 4px;\
-      letter-spacing: 0.06em;\
-      text-transform: uppercase;\
-      color: #f5f7ff;\
-    \}\
-    .subtitle \{\
-      font-size: 11px;\
-      color: var(--muted);\
-      letter-spacing: 0.08em;\
-      text-transform: uppercase;\
-    \}\
-    .status-row \{\
-      display: flex;\
-      justify-content: space-between;\
-      align-items: center;\
-      margin-top: 10px;\
-      gap: 8px;\
-    \}\
-    .status-label \{\
-      font-size: 11px;\
-      letter-spacing: 0.16em;\
-      text-transform: uppercase;\
-      color: var(--muted);\
-    \}\
-    .status-value \{\
-      font-size: 12px;\
-      font-weight: 600;\
-      letter-spacing: 0.12em;\
-      text-transform: uppercase;\
-      padding: 4px 10px;\
-      border-radius: 999px;\
-      border: 1px solid rgba(78,163,255,0.6);\
-      background: radial-gradient(circle at top, rgba(78,163,255,0.18), transparent 60%);\
-      color: var(--accent);\
-    \}\
-    .status-value.standby \{\
-      border-color: rgba(140,150,181,0.7);\
-      color: var(--muted);\
-      background: radial-gradient(circle at top, rgba(140,150,181,0.18), transparent 60%);\
-    \}\
-    .status-value.error \{\
-      border-color: rgba(255,78,122,0.7);\
-      color: var(--danger);\
-      background: radial-gradient(circle at top, rgba(255,78,122,0.18), transparent 60%);\
-    \}\
-    .big-values \{\
-      display: grid;\
-      grid-template-columns: 1.2fr 1fr;\
-      gap: 10px;\
-      margin-top: 14px;\
-    \}\
-    .big-box \{\
-      border-radius: 10px;\
-      border: 1px solid rgba(78,163,255,0.5);\
-      background: radial-gradient(circle at top, rgba(78,163,255,0.16), transparent 60%);\
-      padding: 10px 10px 9px;\
-      display: flex;\
-      flex-direction: column;\
-      gap: 2px;\
-    \}\
-    .big-box-label \{\
-      font-size: 10px;\
-      letter-spacing: 0.16em;\
-      text-transform: uppercase;\
-      color: var(--muted);\
-    \}\
-    .big-box-main \{\
-      display: flex;\
-      align-items: baseline;\
-      gap: 4px;\
-    \}\
-    .big-number \{\
-      font-size: 26px;\
-      font-weight: 700;\
-      letter-spacing: 0.04em;\
-    \}\
-    .big-unit \{\
-      font-size: 11px;\
-      color: var(--muted);\
-    \}\
-    .big-sub \{\
-      font-size: 11px;\
-      color: var(--muted);\
-      margin-top: 2px;\
-    \}\
-    .btn \{\
-      border-radius: 999px;\
-      border: 1px solid rgba(78,163,255,0.8);\
-      background: radial-gradient(circle at top, rgba(78,163,255,0.3), rgba(78,163,255,0.05));\
-      color: #f5f7ff;\
-      font-size: 13px;\
-      font-weight: 600;\
-      letter-spacing: 0.08em;\
-      text-transform: uppercase;\
-      padding: 10px 14px;\
-      display: inline-flex;\
-      align-items: center;\
-      justify-content: center;\
-      gap: 6px;\
-      cursor: pointer;\
-      width: 100%;\
-      border-bottom-width: 2px;\
-      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s ease, border-color 0.12s ease;\
-    \}\
-    .btn span.dot \{\
-      width: 8px;\
-      height: 8px;\
-      border-radius: 999px;\
-      background: #4effa3;\
-      box-shadow: 0 0 10px rgba(78,255,163,0.8);\
-    \}\
-    .btn.stop span.dot \{\
-      background: #ff4e7a;\
-      box-shadow: 0 0 10px rgba(255,78,122,0.8);\
-    \}\
-    .btn:active \{\
-      transform: translateY(1px);\
-      box-shadow: 0 10px 24px rgba(0,0,0,0.6);\
-    \}\
-    .btn.disabled \{\
-      opacity: 0.4;\
-      cursor: default;\
-      border-color: rgba(140,150,181,0.7);\
-      background: radial-gradient(circle at top, rgba(140,150,181,0.18), rgba(5,8,20,0.9));\
-    \}\
-    .hint \{\
-      margin-top: 8px;\
-      font-size: 11px;\
-      color: var(--muted);\
-      line-height: 1.5;\
-    \}\
-    .hint strong \{\
-      color: var(--accent);\
-      font-weight: 500;\
-    \}\
-    .grid-2 \{\
-      display: grid;\
-      grid-template-columns: repeat(2, minmax(0,1fr));\
-      gap: 10px;\
-      margin-top: 10px;\
-    \}\
-    .field \{\
-      display: flex;\
-      flex-direction: column;\
-      gap: 4px;\
-    \}\
-    .field-label \{\
-      font-size: 11px;\
-      color: var(--muted);\
-      display: flex;\
-      justify-content: space-between;\
-      align-items: center;\
-    \}\
-    .field-label span.value \{\
-      color: var(--accent);\
-      font-weight: 500;\
-      font-size: 11px;\
-    \}\
-    .field-input \{\
-      position: relative;\
-    \}\
-    input[type="number"],\
-    select \{\
-      width: 100%;\
-      border-radius: 999px;\
-      border: 1px solid rgba(78,163,255,0.6);\
-      background: rgba(3,6,18,0.9);\
-      color: var(--fg);\
-      padding: 7px 10px;\
-      font-size: 13px;\
-      outline: none;\
-      -webkit-appearance: none;\
-      appearance: none;\
-    \}\
-    input[type="number"]::-webkit-inner-spin-button,\
-    input[type="number"]::-webkit-outer-spin-button \{\
-      -webkit-appearance: none;\
-      margin: 0;\
-    \}\
-    input[type="range"] \{\
-      width: 100%;\
-      -webkit-appearance: none;\
-      appearance: none;\
-      height: 4px;\
-      border-radius: 999px;\
-      background: rgba(35,45,80,0.9);\
-      outline: none;\
-    \}\
-    input[type="range"]::-webkit-slider-thumb \{\
-      -webkit-appearance: none;\
-      appearance: none;\
-      width: 18px;\
-      height: 18px;\
-      border-radius: 50%;\
-      background: radial-gradient(circle at 30% 30%, #ffffff, #4ea3ff);\
-      border: 2px solid #cfe3ff;\
-      box-shadow: 0 0 0 4px rgba(78,163,255,0.35);\
-      cursor: pointer;\
-      margin-top: -7px;\
-    \}\
-    input[type="range"]::-moz-range-thumb \{\
-      width: 18px;\
-      height: 18px;\
-      border-radius: 50%;\
-      background: radial-gradient(circle at 30% 30%, #ffffff, #4ea3ff);\
-      border: 2px solid #cfe3ff;\
-      box-shadow: 0 0 0 4px rgba(78,163,255,0.35);\
-      cursor: pointer;\
-    \}\
-    .small-note \{\
-      font-size: 10px;\
-      color: var(--muted);\
-      margin-top: 4px;\
-    \}\
-    canvas \{\
-      width: 100%;\
-      height: 90px;\
-      border-radius: 10px;\
-      background: radial-gradient(circle at top, rgba(78,163,255,0.12), rgba(3,6,18,0.95));\
-      border: 1px solid rgba(35,45,80,0.9);\
-      display: block;\
-    \}\
-    .footer-note \{\
-      font-size: 10px;\
-      color: var(--muted);\
-      text-align: center;\
-      margin-top: 4px;\
-    \}\
-  </style>\
-</head>\
-<body>\
-  <div class="app">\
-    <!-- \uc0\u12513 \u12452 \u12531 \u34920 \u31034  -->\
-    <div class="card">\
-      <div class="card-inner">\
-        <h1>\uc0\u12511 \u12491 \u22235 \u39366  RPM \u12513 \u12540 \u12479 \u12540 </h1>\
-        <div class="subtitle">AUDIO \uc0\u8594  RPM / SPEED CALCULATOR</div>\
-\
-        <div class="status-row">\
-          <div class="status-label">STATUS</div>\
-          <div id="statusText" class="status-value standby">\
-            STANDBY \'97 \uc0\u35336 \u28204 \u24453 \u27231 \u20013 \
-          </div>\
-        </div>\
-\
-        <div class="big-values">\
-          <div class="big-box">\
-            <div class="big-box-label">MOTOR RPM</div>\
-            <div class="big-box-main">\
-              <div id="rpmDisplay" class="big-number">0</div>\
-              <div class="big-unit">rpm</div>\
-            </div>\
-            <div class="big-sub" id="freqDisplay">0.0 Hz (\uc0\u25512 \u23450 )</div>\
-          </div>\
-          <div class="big-box">\
-            <div class="big-box-label">SPEED</div>\
-            <div class="big-box-main">\
-              <div id="speedDisplay" class="big-number">0.0</div>\
-              <div class="big-unit">km/h</div>\
-            </div>\
-            <div class="big-sub" id="gearInfo">3.5:1 / 25.0 mm</div>\
-          </div>\
-        </div>\
-\
-        <button id="startBtn" class="btn">\
-          <span class="dot"></span>\
-          <span>\uc0\u12514 \u12540 \u12479 \u12540  ON \u8594  \u35336 \u28204 \u38283 \u22987 </span>\
-        </button>\
-\
-        <p class="hint">\
-          \uc0\u12473 \u12510 \u12507 \u12398 \u12510 \u12452 \u12463 \u12434 <strong>\u12514 \u12540 \u12479 \u12540 \u12395 \u36817 \u12389 \u12369 \u12390 </strong>\u12367 \u12384 \u12373 \u12356 \u12290 <br />\
-          \uc0\u12494 \u12452 \u12474 \u12364 \u22810 \u12356 \u29872 \u22659 \u12391 \u12399 \u12289 \u35373 \u23450 \u12398 \u12300 \u12494 \u12452 \u12474 \u38334 \u20516 \u12301 \u12434 \u19978 \u12370 \u12427 \u12392 \u23433 \u23450 \u12375 \u12420 \u12377 \u12367 \u12394 \u12426 \u12414 \u12377 \u12290 \
-        </p>\
-      </div>\
-    </div>\
-\
-    <!-- \uc0\u35373 \u23450 \u12539 \u20837 \u21147  -->\
-    <div class="card">\
-      <div class="card-inner">\
-        <div class="grid-2">\
-          <div class="field">\
-            <div class="field-label">\
-              <span>\uc0\u12479 \u12452 \u12516 \u24452 </span>\
-              <span class="value"><span id="tireVal">25.0</span> mm</span>\
-            </div>\
-            <div class="field-input">\
-              <input id="tireRange" type="range" min="22" max="40" step="0.5" value="25" />\
-            </div>\
-          </div>\
-          <div class="field">\
-            <div class="field-label">\
-              <span>\uc0\u12462 \u12516 \u27604 </span>\
-              <span class="value" id="gearVal">3.5:1</span>\
-            </div>\
-            <div class="field-input">\
-              <select id="gearSelect">\
-                <option value="3.5">3.5:1</option>\
-                <option value="3.7">3.7:1</option>\
-                <option value="4.0">4.0:1</option>\
-                <option value="4.1">4.1:1</option>\
-                <option value="4.2">4.2:1</option>\
-                <option value="4.5">4.5:1</option>\
-                <option value="5.0">5.0:1</option>\
-              </select>\
-            </div>\
-          </div>\
-        </div>\
-\
-        <div class="grid-2" style="margin-top: 10px;">\
-          <div class="field">\
-            <div class="field-label">\
-              <span>\uc0\u12514 \u12540 \u12479 \u12540 \u26997 \u25968 </span>\
-              <span class="value" id="poleVal">2</span>\
-            </div>\
-            <div class="field-input">\
-              <input id="poleInput" type="number" min="1" max="8" step="1" value="2" />\
-            </div>\
-            <div class="small-note">\uc0\u36890 \u24120 \u12398 \u12511 \u12491 \u22235 \u39366 \u12514 \u12540 \u12479 \u12540 \u12399  <strong>2\u26997 </strong> \u24819 \u23450 \u12290 </div>\
-          </div>\
-          <div class="field">\
-            <div class="field-label">\
-              <span>\uc0\u12494 \u12452 \u12474 \u38334 \u20516 </span>\
-              <span class="value" id="noiseVal">-120 dB</span>\
-            </div>\
-            <div class="field-input">\
-              <input id="noiseRange" type="range" min="-140" max="-80" step="2" value="-120" />\
-            </div>\
-            <div class="small-note">\uc0\u20302 \u12356 \u12411 \u12393 \u25935 \u24863 \u65288 \u12494 \u12452 \u12474 \u12364 \u22810 \u12356 \u29872 \u22659 \u12391 \u12399 \u39640 \u12417 \u12395 \u65289 \u12290 </div>\
-          </div>\
-        </div>\
-      </div>\
-    </div>\
-\
-    <!-- \uc0\u27874 \u24418 \u34920 \u31034  -->\
-    <div class="card">\
-      <div class="card-inner">\
-        <div class="field-label">\
-          <span>\uc0\u12458 \u12540 \u12487 \u12451 \u12458 \u27874 \u24418 </span>\
-          <span class="value">LIVE</span>\
-        </div>\
-        <canvas id="waveCanvas"></canvas>\
-        <div class="footer-note">\
-          \uc0\u12502 \u12521 \u12454 \u12470 \u12398  Web Audio API \u12434 \u20351 \u29992 \u12375 \u12390 \u12289 \u12510 \u12452 \u12463 \u20837 \u21147 \u12363 \u12425 \u22522 \u26412 \u21608 \u27874 \u25968 \u12434 \u25512 \u23450 \u12375 \u12390 \u12356 \u12414 \u12377 \u12290 \
-        </div>\
-      </div>\
-    </div>\
-  </div>\
-\
-  <script>\
-    // ====== \uc0\u29366 \u24907 \u31649 \u29702  ======\
-    let audioCtx = null;\
-    let analyser = null;\
-    let micSource = null;\
-    let running = false;\
-    let dataArray = null;\
-    let timeDomain = null;\
-\
-    const fftSize = 2048;\
-    const minFreq = 50;   // \uc0\u12514 \u12540 \u12479 \u12540 \u38899 \u12392 \u12375 \u12390 \u35211 \u12427 \u26368 \u23567 \u21608 \u27874 \u25968 \
-    const maxFreq = 2000; // \uc0\u19978 \u38480 \u65288 \u39640 \u12377 \u12366 \u12427 \u12494 \u12452 \u12474 \u12434 \u28961 \u35222 \u65289 \
-\
-    // DOM\
-    const startBtn = document.getElementById("startBtn");\
-    const statusText = document.getElementById("statusText");\
-    const rpmDisplay = document.getElementById("rpmDisplay");\
-    const freqDisplay = document.getElementById("freqDisplay");\
-    const speedDisplay = document.getElementById("speedDisplay");\
-    const gearInfo = document.getElementById("gearInfo");\
-\
-    const tireRange = document.getElementById("tireRange");\
-    const tireVal = document.getElementById("tireVal");\
-    const gearSelect = document.getElementById("gearSelect");\
-    const gearVal = document.getElementById("gearVal");\
-    const poleInput = document.getElementById("poleInput");\
-    const poleVal = document.getElementById("poleVal");\
-    const noiseRange = document.getElementById("noiseRange");\
-    const noiseVal = document.getElementById("noiseVal");\
-\
-    const waveCanvas = document.getElementById("waveCanvas");\
-    const waveCtx = waveCanvas.getContext("2d");\
-\
-    function resizeCanvas() \{\
-      const rect = waveCanvas.getBoundingClientRect();\
-      waveCanvas.width = rect.width * window.devicePixelRatio;\
-      waveCanvas.height = rect.height * window.devicePixelRatio;\
-      waveCtx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);\
-    \}\
-    resizeCanvas();\
-    window.addEventListener("resize", resizeCanvas);\
-\
-    // ====== UI \uc0\u26356 \u26032  ======\
-    function setStatus(text, mode) \{\
-      statusText.textContent = text;\
-      statusText.classList.remove("standby", "error");\
-      if (mode === "standby") statusText.classList.add("standby");\
-      if (mode === "error") statusText.classList.add("error");\
-    \}\
-\
-    function updateGearInfo() \{\
-      const gear = parseFloat(gearSelect.value);\
-      const tire = parseFloat(tireRange.value);\
-      gearInfo.textContent = gear.toFixed(1) + ":1 / " + tire.toFixed(1) + " mm";\
-    \}\
-\
-    tireRange.addEventListener("input", () => \{\
-      tireVal.textContent = parseFloat(tireRange.value).toFixed(1);\
-      updateGearInfo();\
-    \});\
-    gearSelect.addEventListener("change", () => \{\
-      gearVal.textContent = gearSelect.options[gearSelect.selectedIndex].textContent;\
-      updateGearInfo();\
-    \});\
-    poleInput.addEventListener("input", () => \{\
-      const v = Math.max(1, Math.min(8, parseInt(poleInput.value || "2", 10)));\
-      poleInput.value = v;\
-      poleVal.textContent = v;\
-    \});\
-    noiseRange.addEventListener("input", () => \{\
-      noiseVal.textContent = noiseRange.value + " dB";\
-    \});\
-\
-    updateGearInfo();\
-\
-    // ====== \uc0\u12458 \u12540 \u12487 \u12451 \u12458 \u21021 \u26399 \u21270  ======\
-    async function initAudio() \{\
-      if (audioCtx) return;\
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();\
-      analyser = audioCtx.createAnalyser();\
-      analyser.fftSize = fftSize;\
-      analyser.smoothingTimeConstant = 0.7;\
-\
-      timeDomain = new Float32Array(analyser.fftSize);\
-      dataArray = new Uint8Array(analyser.fftSize);\
-\
-      try \{\
-        const stream = await navigator.mediaDevices.getUserMedia(\{\
-          audio: \{\
-            echoCancellation: false,\
-            noiseSuppression: false,\
-            autoGainControl: false\
-          \}\
-        \});\
-        micSource = audioCtx.createMediaStreamSource(stream);\
-        micSource.connect(analyser);\
-      \} catch (e) \{\
-        console.error(e);\
-        setStatus("\uc0\u12510 \u12452 \u12463 \u12408 \u12398 \u12450 \u12463 \u12475 \u12473 \u12364 \u25298 \u21542 \u12373 \u12428 \u12414 \u12375 \u12383 ", "error");\
-        startBtn.classList.add("disabled");\
-        return;\
-      \}\
-    \}\
-\
-    // ====== \uc0\u22522 \u26412 \u21608 \u27874 \u25968 \u25512 \u23450 \u65288 \u31777 \u26131 \u12458 \u12540 \u12488 \u12467 \u12522 \u12524 \u12540 \u12471 \u12519 \u12531 \u65289  ======\
-    function estimateFrequency() \{\
-      analyser.getFloatTimeDomainData(timeDomain);\
-\
-      // \uc0\u25391 \u24133 \u12524 \u12505 \u12523 \u12481 \u12455 \u12483 \u12463 \u65288 \u12494 \u12452 \u12474 \u38334 \u20516 \u65289 \
-      analyser.getByteTimeDomainData(dataArray);\
-      let sum = 0;\
-      for (let i = 0; i < dataArray.length; i++) \{\
-        const v = (dataArray[i] - 128) / 128;\
-        sum += v * v;\
-      \}\
-      const rms = Math.sqrt(sum / dataArray.length);\
-      const db = 20 * Math.log10(rms || 1e-8);\
-      const noiseThreshold = parseFloat(noiseRange.value); // dB\
-      if (db < noiseThreshold) \{\
-        return \{ freq: 0, db \};\
-      \}\
-\
-      // \uc0\u12458 \u12540 \u12488 \u12467 \u12522 \u12524 \u12540 \u12471 \u12519 \u12531 \
-      const sampleRate = audioCtx.sampleRate;\
-      const minLag = Math.floor(sampleRate / maxFreq);\
-      const maxLag = Math.floor(sampleRate / minFreq);\
-\
-      let bestLag = -1;\
-      let bestCorr = 0;\
-\
-      for (let lag = minLag; lag <= maxLag; lag++) \{\
-        let corr = 0;\
-        for (let i = 0; i < timeDomain.length - lag; i++) \{\
-          corr += timeDomain[i] * timeDomain[i + lag];\
-        \}\
-        if (corr > bestCorr) \{\
-          bestCorr = corr;\
-          bestLag = lag;\
-        \}\
-      \}\
-\
-      if (bestLag === -1 || bestCorr < 0.001) \{\
-        return \{ freq: 0, db \};\
-      \}\
-\
-      const freq = sampleRate / bestLag;\
-      return \{ freq, db \};\
-    \}\
-\
-    // ====== RPM / \uc0\u36895 \u24230 \u35336 \u31639  ======\
-    function computeFromFreq(freq) \{\
-      const poles = parseInt(poleInput.value || "2", 10);\
-      const gear = parseFloat(gearSelect.value);\
-      const tire = parseFloat(tireRange.value);\
-\
-      if (!freq || freq <= 0) \{\
-        rpmDisplay.textContent = "0";\
-        freqDisplay.textContent = "0.0 Hz (\uc0\u25512 \u23450 )";\
-        speedDisplay.textContent = "0.0";\
-        return;\
-      \}\
-\
-      // \uc0\u12514 \u12540 \u12479 \u12540 RPM\u65288 2\u26997 \u12394 \u12425  1\u21608 \u26399  = 1\u22238 \u36578 \u65289 \
-      const rpmMotor = 60 * freq / (poles / 2);\
-      const rpmAxle = rpmMotor / gear;\
-\
-      const diameterM = tire / 1000;\
-      const circumference = Math.PI * diameterM;\
-      const speedKmh = rpmAxle * circumference * 60 / 1000;\
-\
-      rpmDisplay.textContent = Math.round(rpmMotor).toString();\
-      freqDisplay.textContent = freq.toFixed(1) + " Hz (\uc0\u25512 \u23450 )";\
-      speedDisplay.textContent = speedKmh.toFixed(1);\
-    \}\
-\
-    // ====== \uc0\u27874 \u24418 \u25551 \u30011  ======\
-    function drawWaveform() \{\
-      if (!running) \{\
-        // \uc0\u20572 \u27490 \u20013 \u12399 \u34180 \u12367 \u12501 \u12455 \u12540 \u12489 \
-        waveCtx.fillStyle = "#050814";\
-        waveCtx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);\
-        return;\
-      \}\
-\
-      analyser.getByteTimeDomainData(dataArray);\
-\
-      const w = waveCanvas.width / window.devicePixelRatio;\
-      const h = waveCanvas.height / window.devicePixelRatio;\
-\
-      waveCtx.clearRect(0, 0, w, h);\
-      const grad = waveCtx.createLinearGradient(0, 0, w, h);\
-      grad.addColorStop(0, "rgba(78,163,255,0.9)");\
-      grad.addColorStop(1, "rgba(78,255,163,0.9)");\
-      waveCtx.strokeStyle = grad;\
-      waveCtx.lineWidth = 2;\
-\
-      waveCtx.beginPath();\
-      const slice = w / dataArray.length;\
-      for (let i = 0; i < dataArray.length; i++) \{\
-        const v = (dataArray[i] - 128) / 128;\
-        const x = i * slice;\
-        const y = h / 2 - v * (h * 0.4);\
-        if (i === 0) waveCtx.moveTo(x, y);\
-        else waveCtx.lineTo(x, y);\
-      \}\
-      waveCtx.stroke();\
-    \}\
-\
-    // ====== \uc0\u12513 \u12452 \u12531 \u12523 \u12540 \u12503  ======\
-    function loop() \{\
-      if (running && audioCtx && analyser) \{\
-        const \{ freq \} = estimateFrequency();\
-        computeFromFreq(freq);\
-      \}\
-      drawWaveform();\
-      requestAnimationFrame(loop);\
-    \}\
-    requestAnimationFrame(loop);\
-\
-    // ====== \uc0\u12508 \u12479 \u12531 \u25805 \u20316  ======\
-    startBtn.addEventListener("click", async () => \{\
-      if (startBtn.classList.contains("disabled")) return;\
-\
-      if (!audioCtx) \{\
-        await initAudio();\
-        if (!audioCtx) return;\
-      \}\
-\
-      running = !running;\
-      if (running) \{\
-        setStatus("LISTENING \'97 \uc0\u35336 \u28204 \u20013 ", null);\
-        startBtn.classList.add("stop");\
-        startBtn.querySelector("span.dot").classList.add("stop");\
-        startBtn.querySelector("span:nth-child(2)").textContent = "\uc0\u35336 \u28204 \u20572 \u27490 ";\
-      \} else \{\
-        setStatus("STANDBY \'97 \uc0\u35336 \u28204 \u24453 \u27231 \u20013 ", "standby");\
-        startBtn.classList.remove("stop");\
-        startBtn.querySelector("span.dot").classList.remove("stop");\
-        startBtn.querySelector("span:nth-child(2)").textContent = "\uc0\u12514 \u12540 \u12479 \u12540  ON \u8594  \u35336 \u28204 \u38283 \u22987 ";\
-        rpmDisplay.textContent = "0";\
-        freqDisplay.textContent = "0.0 Hz (\uc0\u25512 \u23450 )";\
-        speedDisplay.textContent = "0.0";\
-      \}\
-    \});\
-  </script>\
-</body>\
-</html>\
-}
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Hiragino Mincho ProN'; -webkit-text-stroke: #000000}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Hiragino Mincho ProN'; -webkit-text-stroke: #000000; min-height: 18.0px}
+    span.s1 {font-kerning: none}
+  </style>
+</head>
+<body>
+<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html lang="ja"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;meta charset="UTF-8" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;title&gt;ミニ四駆 RPM メーター&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;meta name="viewport" content="width=device-width,initial-scale=1" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;style&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>:root {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color-scheme: dark;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--bg: #050711;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--fg: #e9f0ff;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--accent: #4ea3ff;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--accent-soft: rgba(78,163,255,0.2);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--danger: #ff4e7a;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--muted: #8c96b5;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--card: #0c1020;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--border: #1b2238;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--radius: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--shadow: 0 18px 40px rgba(0,0,0,0.55);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--font: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>"Helvetica Neue", Arial, sans-serif;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>* { box-sizing: border-box; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>body {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 16px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-family: var(--font);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: radial-gradient(circle at top, #151b3a 0, #050711 55%, #020308 100%);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--fg);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>min-height: 100vh;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>justify-content: center;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.app {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 100%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>max-width: 480px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>flex-direction: column;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>gap: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.card {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: linear-gradient(145deg, #0b1022, #050814);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: var(--radius);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border: 1px solid var(--border);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>box-shadow: var(--shadow);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 14px 14px 16px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>position: relative;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>overflow: hidden;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.card::before {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>content: "";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>position: absolute;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>inset: -40%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background:</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>radial-gradient(circle at 0 0, rgba(78,163,255,0.18), transparent 55%),</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>radial-gradient(circle at 100% 0, rgba(255,78,122,0.16), transparent 55%);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>opacity: 0.6;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>pointer-events: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.card-inner {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>position: relative;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>z-index: 1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>h1 {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 18px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin: 0 0 4px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>letter-spacing: 0.06em;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-transform: uppercase;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: #f5f7ff;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.subtitle {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 11px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--muted);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>letter-spacing: 0.08em;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-transform: uppercase;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.status-row {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>justify-content: space-between;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>align-items: center;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>gap: 8px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.status-label {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 11px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>letter-spacing: 0.16em;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-transform: uppercase;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--muted);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.status-value {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-weight: 600;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>letter-spacing: 0.12em;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-transform: uppercase;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 4px 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 999px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border: 1px solid rgba(78,163,255,0.6);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: radial-gradient(circle at top, rgba(78,163,255,0.18), transparent 60%);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--accent);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.status-value.standby {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-color: rgba(140,150,181,0.7);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--muted);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: radial-gradient(circle at top, rgba(140,150,181,0.18), transparent 60%);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.status-value.error {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-color: rgba(255,78,122,0.7);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--danger);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: radial-gradient(circle at top, rgba(255,78,122,0.18), transparent 60%);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.big-values {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: grid;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>grid-template-columns: 1.2fr 1fr;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>gap: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top: 14px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.big-box {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border: 1px solid rgba(78,163,255,0.5);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: radial-gradient(circle at top, rgba(78,163,255,0.16), transparent 60%);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 10px 10px 9px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>flex-direction: column;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>gap: 2px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.big-box-label {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>letter-spacing: 0.16em;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-transform: uppercase;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--muted);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.big-box-main {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>align-items: baseline;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>gap: 4px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.big-number {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 26px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-weight: 700;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>letter-spacing: 0.04em;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.big-unit {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 11px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--muted);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.big-sub {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 11px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--muted);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top: 2px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.btn {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 999px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border: 1px solid rgba(78,163,255,0.8);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: radial-gradient(circle at top, rgba(78,163,255,0.3), rgba(78,163,255,0.05));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: #f5f7ff;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 13px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-weight: 600;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>letter-spacing: 0.08em;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-transform: uppercase;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 10px 14px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: inline-flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>align-items: center;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>justify-content: center;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>gap: 6px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>cursor: pointer;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 100%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-bottom-width: 2px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s ease, border-color 0.12s ease;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.btn span.dot {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 8px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>height: 8px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 999px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: #4effa3;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>box-shadow: 0 0 10px rgba(78,255,163,0.8);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.btn.stop span.dot {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: #ff4e7a;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>box-shadow: 0 0 10px rgba(255,78,122,0.8);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.btn:active {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>transform: translateY(1px);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>box-shadow: 0 10px 24px rgba(0,0,0,0.6);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.btn.disabled {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>opacity: 0.4;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>cursor: default;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-color: rgba(140,150,181,0.7);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: radial-gradient(circle at top, rgba(140,150,181,0.18), rgba(5,8,20,0.9));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.hint {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top: 8px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 11px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--muted);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>line-height: 1.5;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.hint strong {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--accent);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-weight: 500;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.grid-2 {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: grid;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>grid-template-columns: repeat(2, minmax(0,1fr));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>gap: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.field {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>flex-direction: column;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>gap: 4px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.field-label {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 11px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--muted);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>justify-content: space-between;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>align-items: center;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.field-label span.value {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--accent);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-weight: 500;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 11px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.field-input {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>position: relative;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>input[type="number"],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>select {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 100%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 999px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border: 1px solid rgba(78,163,255,0.6);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: rgba(3,6,18,0.9);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--fg);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding: 7px 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 13px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>outline: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>-webkit-appearance: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>appearance: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>input[type="number"]::-webkit-inner-spin-button,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>input[type="number"]::-webkit-outer-spin-button {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>-webkit-appearance: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>input[type="range"] {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 100%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>-webkit-appearance: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>appearance: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>height: 4px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 999px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: rgba(35,45,80,0.9);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>outline: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>input[type="range"]::-webkit-slider-thumb {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>-webkit-appearance: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>appearance: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 18px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>height: 18px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 50%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: radial-gradient(circle at 30% 30%, #ffffff, #4ea3ff);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border: 2px solid #cfe3ff;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>box-shadow: 0 0 0 4px rgba(78,163,255,0.35);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>cursor: pointer;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top: -7px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>input[type="range"]::-moz-range-thumb {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 18px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>height: 18px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 50%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: radial-gradient(circle at 30% 30%, #ffffff, #4ea3ff);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border: 2px solid #cfe3ff;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>box-shadow: 0 0 0 4px rgba(78,163,255,0.35);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>cursor: pointer;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.small-note {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--muted);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top: 4px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>canvas {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 100%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>height: 90px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background: radial-gradient(circle at top, rgba(78,163,255,0.12), rgba(3,6,18,0.95));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border: 1px solid rgba(35,45,80,0.9);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display: block;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.footer-note {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: var(--muted);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-align: center;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top: 4px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/style&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;body&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div class="app"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="card"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="card-inner"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;h1&gt;ミニ四駆 RPM メーター&lt;/h1&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="subtitle"&gt;AUDIO → RPM / SPEED CALCULATOR&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="status-row"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div class="status-label"&gt;STATUS&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div id="statusText" class="status-value standby"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>STANDBY — 計測待機中</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="big-values"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div class="big-box"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="big-box-label"&gt;MOTOR RPM&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="big-box-main"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div id="rpmDisplay" class="big-number"&gt;0&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div class="big-unit"&gt;rpm&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="big-sub" id="freqDisplay"&gt;0.0 Hz (推定)&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div class="big-box"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="big-box-label"&gt;SPEED&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="big-box-main"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div id="speedDisplay" class="big-number"&gt;0.0&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;div class="big-unit"&gt;km/h&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="big-sub" id="gearInfo"&gt;3.5:1 / 25.0 mm&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;button id="startBtn" class="btn"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;span class="dot"&gt;&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;span&gt;モーター ON → 計測開始&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/button&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;p class="hint"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>スマホのマイクを&lt;strong&gt;モーターに近づけて&lt;/strong&gt;ください。&lt;br /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>ノイズが多い環境では、設定の「ノイズ閾値」を上げると安定しやすくなります。</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="card"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="card-inner"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="grid-2"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div class="field"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="field-label"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;span&gt;タイヤ径&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;span class="value"&gt;&lt;span id="tireVal"&gt;25.0&lt;/span&gt; mm&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="field-input"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;input id="tireRange" type="range" min="22" max="40" step="0.5" value="25" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div class="field"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="field-label"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;span&gt;ギヤ比&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;span class="value" id="gearVal"&gt;3.5:1&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="field-input"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;select id="gearSelect"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="3.5"&gt;3.5:1&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="3.7"&gt;3.7:1&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="4.0"&gt;4.0:1&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="4.1"&gt;4.1:1&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="4.2"&gt;4.2:1&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="4.5"&gt;4.5:1&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;option value="5.0"&gt;5.0:1&lt;/option&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;/select&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="grid-2" style="margin-top: 10px;"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div class="field"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="field-label"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;span&gt;モーター極数&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;span class="value" id="poleVal"&gt;2&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="field-input"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;input id="poleInput" type="number" min="1" max="8" step="1" value="2" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="small-note"&gt;通常のミニ四駆モーターは &lt;strong&gt;2極&lt;/strong&gt; 想定。&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;div class="field"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="field-label"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;span&gt;ノイズ閾値&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;span class="value" id="noiseVal"&gt;-120 dB&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="field-input"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>&lt;input id="noiseRange" type="range" min="-140" max="-80" step="2" value="-120" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="small-note"&gt;低いほど敏感（ノイズが多い環境では高めに）。&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="card"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="card-inner"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="field-label"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;span&gt;オーディオ波形&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;span class="value"&gt;LIVE&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;canvas id="waveCanvas"&gt;&lt;/canvas&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="footer-note"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>ブラウザの Web Audio API を使用して、マイク入力から基本周波数を推定しています。</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>let audioCtx = null;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>let analyser = null;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>let micSource = null;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>let running = false;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>let dataArray = null;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>let timeDomain = null;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const fftSize = 2048;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const minFreq = 50;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const maxFreq = 2000;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const startBtn = document.getElementById("startBtn");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const statusText = document.getElementById("statusText");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const rpmDisplay = document.getElementById("rpmDisplay");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const freqDisplay = document.getElementById("freqDisplay");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const speedDisplay = document.getElementById("speedDisplay");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const gearInfo = document.getElementById("gearInfo");</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const tireRange = document.getElementById("tireRange");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const tireVal = document.getElementById("tireVal");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const gearSelect = document.getElementById("gearSelect");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const gearVal = document.getElementById("gearVal");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const poleInput = document.getElementById("poleInput");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const poleVal = document.getElementById("poleVal");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const noiseRange = document.getElementById("noiseRange");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const noiseVal = document.getElementById("noiseVal");</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const waveCanvas = document.getElementById("waveCanvas");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const waveCtx = waveCanvas.getContext("2d");</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function resizeCanvas() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const rect = waveCanvas.getBoundingClientRect();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>waveCanvas.width = rect.width * window.devicePixelRatio;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>waveCanvas.height = rect.height * window.devicePixelRatio;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>waveCtx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>resizeCanvas();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>window.addEventListener("resize", resizeCanvas);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function setStatus(text, mode) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>statusText.textContent = text;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>statusText</span></p>
+</body>
+</html>
