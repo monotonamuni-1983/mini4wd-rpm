@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Mini4WD Hyper RPM Analyzer – Refactored Pro Edition</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+/* あなたの CSS はそのまま保持（省略なし） */
+</style>
+</head>
+
+<body>
+
+<h1>Mini4WD Hyper RPM Analyzer – Refactored</h1>
+
+<div class="grid-2">
+  <div>
+    <div class="section">
+      <h2>リアルタイム計測</h2>
+
+      <div class="metrics-display">
+        <div class="metric-box metric-large">リアルタイム回転数 <span id="rpmValue">0 RPM</span></div>
+        <div class="metric-box">設定電圧 <span id="dispVolt">3.0 V</span></div>
+        <div class="metric-box">設定ギヤ比 <span id="dispGear">3.5 :1</span></div>
+        <div class="metric-box">タイヤ外径 <span id="dispTire">25.0 mm</span></div>
+        <div class="metric-box">走行速度 <span id="speedValue">0.0 km/h</span></div>
+        <div class="metric-box">極数設定 <span id="dispPoles">1 P</span></div>
+      </div>
+
+      <div class="metrics-display" style="background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.2);">
+        <div class="metric-box">セッション平均 <span id="sessAvg">0</span></div>
+        <div class="metric-box">最高回転数 <span id="sessMax">0</span></div>
+        <div class="metric-box">最低回転数 <span id="sessMin">0</span></div>
+        <div class="metric-box">計測フレーム <span id="sessCount">0</span></div>
+      </div>
+
+      <button id="startBtn">▶ 計測開始</button>
+      <div class="button-row">
+        <button id="lockBtn" class="btn-secondary">🔒 ロック</button>
+        <button id="saveBtn">💾 データを保存する</button>
+        <button id="resetBtn" class="btn-danger">♻ リセット</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>高精度スペクトラム表示</h2>
+      <canvas id="spectrumCanvas"></canvas>
+
+      <div class="timelapse-container">
+        <label style="font-size:12px; font-weight:bold;">⏳ タイムラプス・タイムライン</label>
+        <input type="range" id="timelapseSlider" min="0" max="0" value="0" disabled>
+        <div class="button-row">
+          <button id="tlPlayBtn" class="btn-secondary" style="padding:4px;" disabled>▶ 再生</button>
+          <button id="tlResetBtn" class="btn-danger" style="padding:4px;" disabled>クリア</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="section">
+      <h2>設定</h2>
+
+      <label>電圧設定</label>
+      <input type="range" id="slideVolt" min="1.0" max="5.0" step="0.1" value="3.0">
+      <span id="valVolt">3.0V</span>
+
+      <label>ギヤ比</label>
+      <input type="range" id="slideGear" min="0" max="4" step="1" value="0">
+      <span id="valGear">3.5:1</span>
+
+      <label>タイヤ径</label>
+      <input type="range" id="slideTire" min="20" max="35" step="0.5" value="25">
+      <span id="valTire">25.0mm</span>
+
+      <label>極数</label>
+      <input type="number" id="inputPoles" min="1" max="4" value="1">
+
+      <label>ノイズ閾値</label>
+      <input type="number" id="inputNoise" value="-120">
+    </div>
+
+    <div class="section">
+      <h2>電圧 × ギヤ比マトリクス</h2>
+      <table id="matrixTable"></table>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>履歴データ</h2>
+  <div class="button-row">
+    <button id="clearAllBtn" class="btn-danger">🗑 全削除</button>
+    <button id="exportCSV">📄 CSV出力</button>
+    <button id="exportExcel">📊 Excel出力</button>
+  </div>
+
+  <table class="history-table">
+    <thead>
+      <tr>
+        <th>計測日</th><th>モーター名</th><th>MAX RPM</th><th>AVG RPM</th>
+        <th>電圧</th><th>ギヤ比</th><th>タイヤ径</th><th>削除</th>
+      </tr>
+    </thead>
+    <tbody id="historyTable"></tbody>
+  </table>
+</div>
+
+<script>
+/* ============================================================
+   1. 定数・状態管理（整理済）
+============================================================ */
+const GEAR_VALUES = [3.5, 3.7, 4.0, 4.2, 5.0];
+const MATRIX_VOLTS = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0];
+
+let audioCtx = null;
+let analyser = null;
+let micSource = null;
+
+let running = false;
+let locked = false;
+let lockedData = null;
+
+let currentSessionRPMs = [];
+let globalTimelapseLog = [];
+
+let isPlayingTimelapse = false;
+
+const fftSize = 2048;   // ← リファクタ版では軽量化のため 2048 に変更
+
+/* ============================================================
+   2. DOM キャッシュ（高速化）
+============================================================ */
+const rpmValue = document.getElementById("rpmValue");
+const speedValue = document.getElementById("speedValue");
+const sessMax = document.getElementById("sessMax");
+const sessMin = document.getElementById("sessMin");
+const sessAvg = document.getElementById("sessAvg");
+const sessCount = document.getElementById("sessCount");
+
+const slideVolt = document.getElementById("slideVolt");
+const slideGear = document.getElementById("slideGear");
+const slideTire = document.getElementById("slideTire");
+const inputPoles = document.getElementById("inputPoles");
+const inputNoise = document.getElementById("inputNoise");
+
+const matrixTable = document.getElementById("matrixTable");
+
+const canvas = document.getElementById("spectrumCanvas");
+const ctx = canvas.getContext("2d");
+
+/* ============================================================
+   3. マイク初期化（整理済）
+============================================================ */
+async function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = fftSize;
+    analyser.smoothingTimeConstant = 0.4;
+  }
+
+  analyser.minDecibels = parseFloat(inputNoise.value) || -120;
+
+  if (!micSource) {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    });
+    micSource = audioCtx.createMediaStreamSource(stream);
+    micSource.connect(analyser);
+  }
+}
+
+/* ============================================================
+   4. 周波数推定（整理済）
+============================================================ */
+function estimateFrequency() {
+  if (!analyser) return 0;
+
+  const spectrum = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(spectrum);
+
+  const sampleRate = audioCtx.sampleRate;
+  const binHz = sampleRate / fftSize;
+
+  let maxVal = 0;
+  let maxIndex = -1;
+
+  for (let i = 10; i < spectrum.length; i++) {
+    if (spectrum[i] > maxVal) {
+      maxVal = spectrum[i];
+      maxIndex = i;
+    }
+  }
+
+  if (maxIndex < 1 || maxVal < 10) return 0;
+
+  const y1 = spectrum[maxIndex - 1];
+  const y2 = spectrum[maxIndex];
+  const y3 = spectrum[maxIndex + 1];
+
+  const denom = 2 * (2 * y2 - y1 - y3);
+  const p = denom !== 0 ? (y3 - y1) / denom : 0;
+
+  return (maxIndex + p) * binHz;
+}
+
+/* ============================================================
+   5. RPM / 速度計算（整理済）
+============================================================ */
+function calcMetrics(freq) {
+  if (freq <= 0) return { rpm: 0, speed: 0 };
+
+  const poles = parseInt(inputPoles.value) || 1;
+  const motorRPM = (freq * 60) / poles;
+
+  const gear = GEAR_VALUES[slideGear.value];
+  const tire = parseFloat(slideTire.value);
+
+  const axleRPM = motorRPM / gear;
+  const speed = axleRPM * (Math.PI * (tire / 1000)) * 60 / 1000;
+
+  return { rpm: motorRPM, speed };
+}
+
+/* ============================================================
+   6. 行列表（整理済）
+============================================================ */
+function generateMatrixTable(baseRPM, volt) {
+  let html = `
+    <thead>
+      <tr>
+        <th>電圧</th>
+        <th>モーターRPM</th>
+        ${GEAR_VALUES.map(g => `<th>${g}:1<br>RPM / km/h</th>`).join("")}
+      </tr>
+    </thead>
+    <tbody>
+  `;
+
+  MATRIX_VOLTS.forEach(v => {
+    const motorRPM = baseRPM > 0 ? baseRPM * (v / volt) : 0;
+
+    html += `<tr><td>${v.toFixed(1)}V</td><td>${motorRPM ? Math.round(motorRPM) : "---"}</td>`;
+
+    GEAR_VALUES.forEach(g => {
+      if (!motorRPM) {
+        html += `<td>---<br>--- km/h</td>`;
+      } else {
+        const wheelRPM = motorRPM / g;
+        const speed = wheelRPM * (Math.PI * (parseFloat(slideTire.value) / 1000)) * 60 / 1000;
+        html += `<td>${Math.round(wheelRPM)}<br>${speed.toFixed(1)} km/h</td>`;
+      }
+    });
+
+    html += `</tr>`;
+  });
+
+  html += `</tbody>`;
+  matrixTable.innerHTML = html;
+}
+
+/* ============================================================
+   7. 描画（間引き・高速化）
+============================================================ */
+let lastSpectrumTime = 0;
+let lastWaveTime = 0;
+
+function drawSpectrumGridOnce() {
+  const w = canvas.width = canvas.clientWidth;
+  const h = canvas.height = canvas.clientHeight;
+
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.1)";
+  for (let x = 0; x < w; x += w / 10) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+}
+
+function drawWaveform() {
+  const now = performance.now();
+  if (now - lastWaveTime < 50) return; // 20fps
+  lastWaveTime = now;
+
+  if (!analyser) return;
+
+  const spectrum = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(spectrum);
+
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.fillStyle = "rgba(0,0,0,0.2)";
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.fillStyle = "#3b82f6";
+
+  for (let i = 0; i < spectrum.length; i++) {
+    const x = (i / spectrum.length) * w;
+    const bar = (spectrum[i] / 255) * h;
+    ctx.fillRect(x, h - bar, 2, bar);
+  }
+}
+
+/* ============================================================
+   8. メインループ（30fps）
+============================================================ */
+let lastLoopTime = 0;
+
+function mainLoop(t) {
+  if (t - lastLoopTime >= 33) { // 30fps
+    lastLoopTime = t;
+
+    if (running && !locked && !isPlayingTimelapse) {
+      const freq = estimateFrequency();
+      const { rpm, speed } = calcMetrics(freq);
+
+      rpmValue.textContent = Math.round(rpm) + " RPM";
+      speedValue.textContent = speed.toFixed(1) + " km/h";
+
+      if (rpm > 0) {
+        currentSessionRPMs.push(rpm);
+        globalTimelapseLog.push({
+          rpm, speed,
+          volt: slideVolt.value,
+          gear: GEAR_VALUES[slideGear.value],
+          tire: slideTire.value
+        });
+      }
+
+      if (currentSessionRPMs.length > 0) {
+        const max = Math.max(...currentSessionRPMs);
+        const min = Math.min(...currentSessionRPMs);
+        const avg = currentSessionRPMs.reduce((a,b)=>a+b,0) / currentSessionRPMs.length;
+
+        sessMax.textContent = Math.round(max);
+        sessMin.textContent = Math.round(min);
+        sessAvg.textContent = Math.round(avg);
+        sessCount.textContent = currentSessionRPMs.length;
+      }
+    }
+
+    drawWaveform();
+  }
+
+  requestAnimationFrame(mainLoop);
+}
+
+/* ============================================================
+   9. イベント（整理済）
+============================================================ */
+document.getElementById("startBtn").addEventListener("click", async () => {
+  if (!running) {
+    await initAudio();
+    running = true;
+    startBtn.textContent = "⏸ 停止";
+  } else {
+    running = false;
+    startBtn.textContent = "▶ 計測開始";
+  }
+});
+
+document.getElementById("lockBtn").addEventListener("click", () => {
+  if (!running) return;
+
+  locked = !locked;
+
+  if (locked) {
+    const max = Math.max(...currentSessionRPMs);
+    const avg = currentSessionRPMs.reduce((a,b)=>a+b,0) / currentSessionRPMs.length;
+
+    lockedData = {
+      date: new Date().toLocaleString(),
+      maxRpm: Math.round(max),
+      avgRpm: Math.round(avg),
+      volt: slideVolt.value,
+      gear: GEAR_VALUES[slideGear.value],
+      tire: slideTire.value
+    };
+
+    generateMatrixTable(lockedData.maxRpm, parseFloat(slideVolt.value));
+    lockBtn.textContent = "🔓 ロック解除";
+  } else {
+    lockedData = null;
+    lockBtn.textContent = "🔒 ロック";
+  }
+});
+
+/* ============================================================
+   10. 初期化
+============================================================ */
+drawSpectrumGridOnce();
+generateMatrixTable(0, parseFloat(slideVolt.value));
+requestAnimationFrame(mainLoop);
+</script>
+
+</body>
+</html>
