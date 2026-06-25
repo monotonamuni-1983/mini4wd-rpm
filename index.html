@@ -185,6 +185,14 @@
     .section { page-break-inside: avoid; border: 1px solid #000; }
     button, details, .theme-toggle-container, .timelapse-container, .filter-container { display: none !important; }
   }
+
+/* ===== 全体計測履歴一覧の列幅を統一 ===== */
+#historyTable th,
+#historyTable td {
+  width: 90px;          /* ← 他のテーブルと同じ幅に揃える */
+  white-space: nowrap;  /* ← 文字が折り返されないようにする */
+}
+
 </style>
 </head>
 <body>
