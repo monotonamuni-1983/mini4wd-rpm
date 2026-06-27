@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini4WD Hyper RPM Analyzer</title>
+  <title>RPM Analyzer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     :root {
@@ -33,7 +33,7 @@
     }
 
     .app-shell {
-      max-width: 480px; /* 6.9インチスマホ想定の幅 */
+      max-width: 480px;
       margin: 0 auto;
       padding: 16px 12px 32px;
     }
@@ -49,11 +49,6 @@
       font-size: 1.2rem;
       font-weight: 700;
       letter-spacing: 0.06em;
-    }
-
-    .app-subtitle {
-      font-size: 0.75rem;
-      color: var(--text-sub);
     }
 
     .header-right {
@@ -111,7 +106,6 @@
       color: var(--text-sub);
     }
 
-    /* リアルタイム計測 */
     .wave-container {
       background: linear-gradient(145deg, #f9fbff, #eef2ff);
       border-radius: var(--radius-md);
@@ -131,9 +125,10 @@
       color: var(--text-sub);
     }
 
-    canvas#waveform {
+    canvas#waveform,
+    canvas#spectrum {
       width: 100%;
-      height: 110px;
+      height: 120px;
       border-radius: 12px;
       background: radial-gradient(circle at top, #ffffff 0, #e3e9ff 60%, #d6defa 100%);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
@@ -221,7 +216,6 @@
       box-shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
     }
 
-    /* 計測条件 */
     .settings-row {
       display: flex;
       flex-direction: column;
@@ -278,7 +272,6 @@
       cursor: pointer;
     }
 
-    /* 比較表（トップ） */
     .table-wrapper {
       margin-top: 6px;
       border-radius: var(--radius-md);
@@ -322,24 +315,18 @@
       text-align: left;
     }
 
-    th:nth-child(2),
-    td:nth-child(2) {
-      left: 110px;
-    }
-
     th:first-child {
-      min-width: 110px;
+      min-width: 70px;
     }
 
     th:nth-child(2) {
-      min-width: 110px;
+      min-width: 70px;
     }
 
     tbody tr:nth-child(even) {
       background: #f5f7ff;
     }
 
-    /* モーダル共通 */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -379,7 +366,6 @@
       cursor: pointer;
     }
 
-    /* 履歴 */
     .history-list {
       border-radius: var(--radius-md);
       border: 1px solid #dde2f2;
@@ -390,25 +376,28 @@
       margin-top: 6px;
     }
 
-    .history-header-row {
-      display: grid;
-      grid-template-columns: 70px 90px 60px 70px 70px 70px 70px 70px 50px 50px;
-      padding: 6px 8px;
-      border-bottom: 1px solid #dde2f2;
-      background: #e6ecff;
-      font-weight: 600;
-    }
-
     .history-row {
-      display: grid;
-      grid-template-columns: 70px 90px 60px 70px 70px 70px 70px 70px 50px 50px;
       padding: 6px 8px;
       border-bottom: 1px solid #dde2f2;
-      align-items: center;
+      font-size: 0.8rem;
     }
 
     .history-row:nth-child(even) {
       background: #f5f7ff;
+    }
+
+    .history-row-top {
+      display: grid;
+      grid-template-columns: 70px 90px 90px 70px 70px;
+      gap: 4px;
+      margin-bottom: 2px;
+    }
+
+    .history-row-bottom {
+      display: grid;
+      grid-template-columns: 70px 70px 70px 50px;
+      gap: 4px;
+      align-items: center;
     }
 
     .history-label {
@@ -416,8 +405,7 @@
       font-size: 0.75rem;
     }
 
-    .delete-btn,
-    .reflect-btn {
+    .delete-btn {
       width: 26px;
       height: 26px;
       border-radius: 999px;
@@ -427,24 +415,12 @@
       align-items: center;
       justify-content: center;
       font-size: 0.9rem;
-    }
-
-    .delete-btn {
       background: #ffe5e5;
       color: #ff4b4b;
     }
 
     .delete-btn:hover {
       background: #ffd0d0;
-    }
-
-    .reflect-btn {
-      background: #e3f1ff;
-      color: #1f7aff;
-    }
-
-    .reflect-btn:hover {
-      background: #c9e3ff;
     }
 
     .history-filters {
@@ -473,29 +449,59 @@
       outline: none;
     }
 
-    /* 履歴用比較表 */
-    .history-table-wrapper {
-      margin-top: 8px;
-      border-radius: var(--radius-md);
-      border: 1px solid #dde2f2;
-      overflow-x: auto;
-      max-height: 200px;
-      background: #f9fbff;
+    .input-modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       font-size: 0.8rem;
     }
 
-    .history-table-wrapper table {
-      min-width: 480px;
+    .input-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .input-row input,
+    .input-row select {
+      border-radius: 999px;
+      border: 1px solid #d5dbf0;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      outline: none;
+    }
+
+    .input-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .small-btn {
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      border: none;
+      cursor: pointer;
+    }
+
+    .small-btn.primary {
+      background: #1f7aff;
+      color: #fff;
+    }
+
+    .small-btn.secondary {
+      background: #eef1f8;
+      color: #4b5160;
     }
   </style>
 </head>
 <body>
   <div class="app-shell">
-    <!-- ヘッダー -->
     <header>
       <div>
         <div class="app-title">RPM Analyzer</div>
-        <div class="app-subtitle">Mini4WD Hyper RPM Analyzer</div>
       </div>
       <div class="header-right">
         <button class="icon-button" id="historyIcon" title="履歴">
@@ -511,45 +517,53 @@
     <section class="card" aria-label="リアルタイム計測エリア">
       <div class="card-header">
         <div class="card-title">リアルタイム計測</div>
-        <div class="card-caption">モーター音からRPMと速度を解析</div>
+        <div class="card-caption">モーター音からRPMとSPEEDを解析</div>
       </div>
 
       <div class="wave-container">
         <div class="wave-header">
-          <span>波形グラフ</span>
+          <span>波形</span>
           <span id="waveStatusLabel">STANDBY</span>
         </div>
         <canvas id="waveform"></canvas>
       </div>
 
+      <div class="wave-container">
+        <div class="wave-header">
+          <span>FFTスペクトラム</span>
+          <span id="fftStatusLabel">STANDBY</span>
+        </div>
+        <canvas id="spectrum"></canvas>
+      </div>
+
       <div class="history-label" style="margin-bottom:4px;">RPM</div>
       <div class="realtime-stats">
         <div class="stat-block">
-          <div class="stat-label">平均RPM</div>
+          <div class="stat-label">RPM</div>
           <div class="stat-value" id="avgRpm">0</div>
         </div>
         <div class="stat-block">
-          <div class="stat-label">最高RPM</div>
+          <div class="stat-label">MAX</div>
           <div class="stat-value" id="maxRpm">0</div>
         </div>
         <div class="stat-block">
-          <div class="stat-label">最低RPM</div>
+          <div class="stat-label">MIN</div>
           <div class="stat-value" id="minRpm">0</div>
         </div>
       </div>
 
-      <div class="history-label" style="margin:6px 0 4px;">速度</div>
+      <div class="history-label" style="margin:6px 0 4px;">SPEED</div>
       <div class="realtime-stats">
         <div class="stat-block">
-          <div class="stat-label">平均速度</div>
+          <div class="stat-label">SPEED</div>
           <div class="stat-value" id="avgSpeed">0.00 km/h</div>
         </div>
         <div class="stat-block">
-          <div class="stat-label">最高速度</div>
+          <div class="stat-label">TOP</div>
           <div class="stat-value" id="maxSpeed">0.00 km/h</div>
         </div>
         <div class="stat-block">
-          <div class="stat-label">最低速度</div>
+          <div class="stat-label">MIN</div>
           <div class="stat-value" id="minSpeed">0.00 km/h</div>
         </div>
       </div>
@@ -597,7 +611,7 @@
       </div>
     </section>
 
-    <!-- 比較表（トップ画面） -->
+    <!-- 比較表 -->
     <section class="card" aria-label="比較表">
       <div class="card-header">
         <div class="card-title">比較表</div>
@@ -619,14 +633,13 @@
               <th>11.2:1 km/h</th>
             </tr>
           </thead>
-          <tbody id="comparisonBody">
-          </tbody>
+          <tbody id="comparisonBody"></tbody>
         </table>
       </div>
     </section>
   </div>
 
-  <!-- 設定モーダル（音声解析設定） -->
+  <!-- 設定モーダル -->
   <div class="modal-backdrop" id="settingsModalBackdrop">
     <div class="modal">
       <div class="modal-header">
@@ -649,16 +662,9 @@
           <div class="setting-item">
             <div class="setting-label">
               <span>モーター極数</span>
-              <span class="setting-value" id="poleMotorLabel">1</span>
+              <span class="setting-value" id="poleMotorLabel">2</span>
             </div>
-            <input type="range" id="motorPoleRange" min="1" max="4" step="1" value="1" />
-          </div>
-          <div class="setting-item">
-            <div class="setting-label">
-              <span>ポール数</span>
-              <span class="setting-value" id="poleCountLabel">1</span>
-            </div>
-            <input type="range" id="poleCountRange" min="1" max="3" step="1" value="1" />
+            <input type="range" id="motorPoleRange" min="1" max="4" step="1" value="2" />
           </div>
           <div class="setting-item">
             <div class="setting-label">
@@ -683,12 +689,18 @@
       <div class="card" style="margin-bottom:8px;">
         <div class="card-header">
           <div class="card-title">フィルタ</div>
-          <div class="card-caption">モーター名・電圧・ギヤ比・タイヤ径</div>
+          <div class="card-caption">モーター・種類・電圧・ギヤ比・タイヤ径</div>
         </div>
         <div class="history-filters">
           <div class="filter-group">
-            <span>モーター名</span>
+            <span>モーター</span>
             <select id="filterMotor">
+              <option value="">すべて</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <span>モーター種類</span>
+            <select id="filterMotorType">
               <option value="">すべて</option>
             </select>
           </div>
@@ -713,85 +725,82 @@
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:8px;">
+      <div class="card">
         <div class="card-header">
           <div class="card-title">全体計測履歴一覧</div>
           <div class="card-caption">保存したモーター性能ベンチ</div>
         </div>
-        <div class="history-list" id="historyList">
-          <!-- ヘッダー行 -->
-        </div>
+        <div class="history-list" id="historyList"></div>
       </div>
+    </div>
+  </div>
 
+  <!-- 保存入力モーダル -->
+  <div class="modal-backdrop" id="saveModalBackdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">保存設定</div>
+        <button class="modal-close" id="saveClose">×</button>
+      </div>
       <div class="card">
         <div class="card-header">
-          <div class="card-title">履歴用比較表</div>
-          <div class="card-caption">反映ボタンで選択した履歴を表示</div>
+          <div class="card-title">保存情報</div>
+          <div class="card-caption">名前とモーター種類</div>
         </div>
-        <div class="history-table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>モーター名</th>
-                <th>電圧</th>
-                <th>ギヤ比</th>
-                <th>タイヤ径</th>
-                <th>MAXRPM</th>
-                <th>AVGRPM</th>
-                <th>最高速度</th>
-              </tr>
-            </thead>
-            <tbody id="historyComparisonBody">
-            </tbody>
-          </table>
+        <div class="input-modal-body">
+          <div class="input-row">
+            <span>名前（必須・8文字まで）</span>
+            <input type="text" id="saveNameInput" maxlength="8" />
+          </div>
+          <div class="input-row">
+            <span>モーター種類（任意）</span>
+            <select id="saveMotorTypeSelect">
+              <option value="">未選択</option>
+              <option>ノーマル</option>
+              <option>レブチューン</option>
+              <option>トルクチューン</option>
+              <option>アトミックチューン</option>
+              <option>ライトダッシュ</option>
+              <option>ハイパーダッシュ</option>
+              <option>パワーダッシュ</option>
+              <option>スプリントダッシュ</option>
+              <option>ウルトラダッシュ</option>
+              <option>プラズマダッシュ</option>
+              <option>レブチューンPRO</option>
+              <option>トルクチューンPRO</option>
+              <option>アトミックチューンPRO</option>
+              <option>ライトダッシュPRO</option>
+              <option>ハイパーダッシュPRO</option>
+              <option>マッハダッシュPRO</option>
+            </select>
+          </div>
+          <div class="input-modal-actions">
+            <button class="small-btn secondary" id="saveCancelBtn">キャンセル</button>
+            <button class="small-btn primary" id="saveConfirmBtn">保存</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // --- 波形ダミーアニメーション ---
-    const canvas = document.getElementById("waveform");
-    const ctx = canvas.getContext("2d");
-    function resizeCanvas() {
+    // --- Canvas resize ---
+    const waveformCanvas = document.getElementById("waveform");
+    const spectrumCanvas = document.getElementById("spectrum");
+    const waveCtx = waveformCanvas.getContext("2d");
+    const specCtx = spectrumCanvas.getContext("2d");
+
+    function resizeCanvas(canvas) {
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * window.devicePixelRatio;
       canvas.height = rect.height * window.devicePixelRatio;
     }
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-
-    let wavePhase = 0;
-    let measuring = false;
-    let lockedStats = false;
-
-    function drawWave() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const w = canvas.width;
-      const h = canvas.height;
-      const mid = h / 2;
-      ctx.lineWidth = 3 * window.devicePixelRatio;
-      const grad = ctx.createLinearGradient(0, 0, w, h);
-      grad.addColorStop(0, "#1f7aff");
-      grad.addColorStop(0.5, "#ff4b4b");
-      grad.addColorStop(1, "#1f7aff");
-      ctx.strokeStyle = grad;
-      ctx.beginPath();
-      const amplitude = measuring ? h * 0.25 : h * 0.08;
-      const freq = measuring ? 0.02 : 0.01;
-      for (let x = 0; x < w; x++) {
-        const y =
-          mid +
-          Math.sin((x + wavePhase) * freq) * amplitude *
-          (0.6 + 0.4 * Math.sin((x + wavePhase) * 0.002));
-        if (x === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-      wavePhase += measuring ? 4 : 1;
-      requestAnimationFrame(drawWave);
+    function resizeAllCanvas() {
+      resizeCanvas(waveformCanvas);
+      resizeCanvas(spectrumCanvas);
     }
-    drawWave();
+    resizeAllCanvas();
+    window.addEventListener("resize", resizeAllCanvas);
 
     // --- 計測条件ラベル ---
     const voltageRange = document.getElementById("voltageRange");
@@ -813,7 +822,7 @@
       tireLabel.textContent = Number(tireRange.value).toFixed(1) + " mm";
     });
 
-    // --- 音声解析設定ラベル ---
+    // --- 設定モーダルラベル ---
     const noiseRange = document.getElementById("noiseRange");
     const noiseLabel = document.getElementById("noiseLabel");
     noiseRange.addEventListener("input", () => {
@@ -826,19 +835,13 @@
       poleMotorLabel.textContent = motorPoleRange.value;
     });
 
-    const poleCountRange = document.getElementById("poleCountRange");
-    const poleCountLabel = document.getElementById("poleCountLabel");
-    poleCountRange.addEventListener("input", () => {
-      poleCountLabel.textContent = poleCountRange.value;
-    });
-
     const rpmCalRange = document.getElementById("rpmCalRange");
     const rpmCalLabel = document.getElementById("rpmCalLabel");
     rpmCalRange.addEventListener("input", () => {
       rpmCalLabel.textContent = Number(rpmCalRange.value).toFixed(2);
     });
 
-    // --- リアルタイムダミー統計 ---
+    // --- リアルタイム表示要素 ---
     const avgRpmEl = document.getElementById("avgRpm");
     const maxRpmEl = document.getElementById("maxRpm");
     const minRpmEl = document.getElementById("minRpm");
@@ -847,8 +850,29 @@
     const minSpeedEl = document.getElementById("minSpeed");
     const standbyText = document.getElementById("standbyText");
     const waveStatusLabel = document.getElementById("waveStatusLabel");
+    const fftStatusLabel = document.getElementById("fftStatusLabel");
 
-    let fakeRpmBase = 20000;
+    const startBtn = document.getElementById("startBtn");
+    const lockBtn = document.getElementById("lockBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    let measuring = false;
+    let lockedStats = false;
+
+    // --- Web Audio ---
+    let audioContext = null;
+    let analyser = null;
+    let sourceNode = null;
+    let timeData = null;
+    let freqData = null;
+
+    let currentRpm = 0;
+    let maxRpm = 0;
+    let minRpm = 0;
+    let currentSpeed = 0;
+    let maxSpeed = 0;
+    let minSpeed = 0;
 
     function rpmToKmh(rpm, tireMm, gearRatio) {
       const tireM = tireMm / 1000;
@@ -859,36 +883,151 @@
       return kmPerH;
     }
 
-    function updateFakeStats() {
-      if (!measuring || lockedStats) return;
-      const jitter = () => (Math.random() - 0.5) * 2000;
-      const avgRpm = fakeRpmBase + jitter();
-      const maxRpm = avgRpm + 1500;
-      const minRpm = avgRpm - 1500;
-      avgRpmEl.textContent = Math.round(avgRpm);
-      maxRpmEl.textContent = Math.round(maxRpm);
-      minRpmEl.textContent = Math.round(minRpm);
+    async function startAudio() {
+      if (audioContext) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        const bufferLength = analyser.frequencyBinCount;
+        timeData = new Uint8Array(analyser.fftSize);
+        freqData = new Float32Array(bufferLength);
 
-      const tireMm = Number(tireRange.value);
-      const gearRatio = parseFloat(gearOptions[gearRange.value]);
-      avgSpeedEl.textContent = rpmToKmh(avgRpm, tireMm, gearRatio).toFixed(2) + " km/h";
-      maxSpeedEl.textContent = rpmToKmh(maxRpm, tireMm, gearRatio).toFixed(2) + " km/h";
-      minSpeedEl.textContent = rpmToKmh(minRpm, tireMm, gearRatio).toFixed(2) + " km/h";
+        sourceNode = audioContext.createMediaStreamSource(stream);
+        sourceNode.connect(analyser);
+
+        waveStatusLabel.textContent = "LIVE";
+        fftStatusLabel.textContent = "LIVE";
+        standbyText.textContent = "MEASURING";
+
+        drawLoop();
+      } catch (e) {
+        console.error(e);
+        standbyText.textContent = "ERROR";
+      }
     }
-    setInterval(updateFakeStats, 500);
 
-    // --- トップ比較表 ---
+    function stopAudio() {
+      if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+        analyser = null;
+        sourceNode = null;
+        timeData = null;
+        freqData = null;
+      }
+      waveStatusLabel.textContent = "STANDBY";
+      fftStatusLabel.textContent = "STANDBY";
+      standbyText.textContent = "STANDBY";
+    }
+
+    function drawWaveform() {
+      if (!analyser || !timeData) return;
+      analyser.getByteTimeDomainData(timeData);
+      const w = waveformCanvas.width;
+      const h = waveformCanvas.height;
+      waveCtx.clearRect(0, 0, w, h);
+      waveCtx.lineWidth = 2 * window.devicePixelRatio;
+      waveCtx.strokeStyle = "#1f7aff";
+      waveCtx.beginPath();
+      const slice = w / timeData.length;
+      for (let i = 0; i < timeData.length; i++) {
+        const v = timeData[i] / 128.0 - 1.0;
+        const x = i * slice;
+        const y = h / 2 + v * (h / 2) * 0.8;
+        if (i === 0) waveCtx.moveTo(x, y);
+        else waveCtx.lineTo(x, y);
+      }
+      waveCtx.stroke();
+    }
+
+    function drawSpectrumAndComputeRpm() {
+      if (!analyser || !freqData) return;
+      analyser.getFloatFrequencyData(freqData);
+
+      const w = spectrumCanvas.width;
+      const h = spectrumCanvas.height;
+      specCtx.clearRect(0, 0, w, h);
+
+      const sampleRate = audioContext.sampleRate;
+      const binCount = freqData.length;
+
+      const noiseThresholdDb = parseFloat(noiseRange.value); // e.g. -100 dB
+      const motorPoles = parseInt(motorPoleRange.value, 10); // 2極など
+      const rpmCal = parseFloat(rpmCalRange.value);
+
+      let peakFreq = 0;
+      let peakVal = -Infinity;
+
+      specCtx.beginPath();
+      specCtx.strokeStyle = "#ff4b4b";
+      specCtx.lineWidth = 2 * window.devicePixelRatio;
+
+      for (let i = 0; i < binCount; i++) {
+        const freq = (i * sampleRate) / (2 * binCount);
+        if (freq < 200 || freq > 2000) continue; // ミニ四駆レンジ
+
+        const val = freqData[i];
+        const norm = Math.max((val + 140) / 60, 0); // 簡易正規化
+        const x = (freq / 2000) * w;
+        const y = h - norm * h;
+
+        if (i === 0) specCtx.moveTo(x, y);
+        else specCtx.lineTo(x, y);
+
+        if (val > noiseThresholdDb && val > peakVal) {
+          peakVal = val;
+          peakFreq = freq;
+        }
+      }
+      specCtx.stroke();
+
+      if (peakFreq > 0) {
+        let rpm = (peakFreq / motorPoles) * 60 * rpmCal;
+        currentRpm = rpm;
+
+        const tireMm = Number(tireRange.value);
+        const gearRatio = parseFloat(gearOptions[gearRange.value]);
+        currentSpeed = rpmToKmh(rpm, tireMm, gearRatio);
+
+        if (!lockedStats) {
+          if (maxRpm === 0 || rpm > maxRpm) maxRpm = rpm;
+          if (minRpm === 0 || rpm < minRpm) minRpm = rpm;
+          if (maxSpeed === 0 || currentSpeed > maxSpeed) maxSpeed = currentSpeed;
+          if (minSpeed === 0 || currentSpeed < minSpeed) minSpeed = currentSpeed;
+        }
+
+        avgRpmEl.textContent = Math.round(currentRpm);
+        maxRpmEl.textContent = Math.round(maxRpm);
+        minRpmEl.textContent = Math.round(minRpm);
+
+        avgSpeedEl.textContent = currentSpeed.toFixed(2) + " km/h";
+        maxSpeedEl.textContent = maxSpeed.toFixed(2) + " km/h";
+        minSpeedEl.textContent = minSpeed.toFixed(2) + " km/h";
+      }
+    }
+
+    function drawLoop() {
+      if (!audioContext) return;
+      drawWaveform();
+      drawSpectrumAndComputeRpm();
+      requestAnimationFrame(drawLoop);
+    }
+
+    // --- 比較表 ---
     const comparisonBody = document.getElementById("comparisonBody");
     function buildComparisonTable(baseRpmFromLock) {
       const voltages = [2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4];
       comparisonBody.innerHTML = "";
       const tireMm = Number(tireRange.value);
       const ratios = [3.5, 3.7, 4.0, 4.2, 5.0, 6.4, 8.75, 11.2];
+      const currentVoltage = Number(voltageRange.value);
 
       voltages.forEach((v) => {
         const baseRpm = baseRpmFromLock
-          ? baseRpmFromLock * (v / Number(voltageRange.value))
-          : 15000 + (v - 2.2) * 4000;
+          ? baseRpmFromLock * (v / currentVoltage)
+          : 15000 * (v / 2.8); // 初期値は適当な目安
         const tr = document.createElement("tr");
 
         const tdV = document.createElement("td");
@@ -910,22 +1049,19 @@
     }
     buildComparisonTable(null);
 
-    // --- ボタン ---
-    const startBtn = document.getElementById("startBtn");
-    const lockBtn = document.getElementById("lockBtn");
-    const saveBtn = document.getElementById("saveBtn");
-    const resetBtn = document.getElementById("resetBtn");
-
+    // --- ボタン動作 ---
     startBtn.addEventListener("click", () => {
       measuring = !measuring;
       if (measuring) {
         startBtn.textContent = "計測停止";
-        standbyText.textContent = "MEASURING";
-        waveStatusLabel.textContent = "LIVE";
+        lockBtn.textContent = "ロック";
+        lockBtn.classList.add("gray");
+        lockBtn.classList.remove("outline");
+        lockedStats = false;
+        startAudio();
       } else {
         startBtn.textContent = "計測開始";
-        standbyText.textContent = "STANDBY";
-        waveStatusLabel.textContent = "STANDBY";
+        stopAudio();
       }
     });
 
@@ -936,7 +1072,7 @@
       lockBtn.textContent = lockedStats ? "ロック解除" : "ロック";
 
       if (lockedStats) {
-        const avgRpm = Number(avgRpmEl.textContent) || fakeRpmBase;
+        const avgRpm = Number(avgRpmEl.textContent) || currentRpm || 15000;
         buildComparisonTable(avgRpm);
       }
     });
@@ -948,8 +1084,13 @@
       lockBtn.textContent = "ロック";
       lockBtn.classList.add("gray");
       lockBtn.classList.remove("outline");
-      standbyText.textContent = "STANDBY";
-      waveStatusLabel.textContent = "STANDBY";
+      stopAudio();
+      currentRpm = 0;
+      maxRpm = 0;
+      minRpm = 0;
+      currentSpeed = 0;
+      maxSpeed = 0;
+      minSpeed = 0;
       avgRpmEl.textContent = "0";
       maxRpmEl.textContent = "0";
       minRpmEl.textContent = "0";
@@ -962,20 +1103,22 @@
     // --- 履歴データ ---
     const historyList = document.getElementById("historyList");
     const filterMotor = document.getElementById("filterMotor");
+    const filterMotorType = document.getElementById("filterMotorType");
     const filterVoltage = document.getElementById("filterVoltage");
     const filterGear = document.getElementById("filterGear");
     const filterTire = document.getElementById("filterTire");
-    const historyComparisonBody = document.getElementById("historyComparisonBody");
 
     const historyData = [];
 
     function populateFilterOptions() {
       const motors = new Set();
+      const motorTypes = new Set();
       const voltages = new Set();
       const gears = new Set();
       const tires = new Set();
       historyData.forEach((h) => {
         motors.add(h.motor);
+        if (h.motorType) motorTypes.add(h.motorType);
         voltages.add(h.voltage);
         gears.add(h.gear);
         tires.add(h.tire);
@@ -994,6 +1137,7 @@
       }
 
       fillSelect(filterMotor, motors);
+      fillSelect(filterMotorType, motorTypes);
       fillSelect(filterVoltage, voltages);
       fillSelect(filterGear, gears);
       fillSelect(filterTire, tires);
@@ -1001,33 +1145,16 @@
 
     function renderHistory() {
       historyList.innerHTML = "";
-      const header = document.createElement("div");
-      header.className = "history-header-row";
-      [
-        "日付",
-        "モーター名",
-        "電圧",
-        "ギヤ比",
-        "タイヤ径",
-        "最高速度",
-        "MAXRPM",
-        "AVGRPM",
-        "反映",
-        "削除",
-      ].forEach((label) => {
-        const span = document.createElement("span");
-        span.textContent = label;
-        header.appendChild(span);
-      });
-      historyList.appendChild(header);
 
       const m = filterMotor.value;
+      const mt = filterMotorType.value;
       const v = filterVoltage.value;
       const g = filterGear.value;
       const t = filterTire.value;
 
       historyData
         .filter((h) => (!m || h.motor === m))
+        .filter((h) => (!mt || h.motorType === mt))
         .filter((h) => (!v || h.voltage === v))
         .filter((h) => (!g || h.gear === g))
         .filter((h) => (!t || h.tire === t))
@@ -1035,59 +1162,26 @@
           const row = document.createElement("div");
           row.className = "history-row";
 
+          const topRow = document.createElement("div");
+          topRow.className = "history-row-top";
+          const bottomRow = document.createElement("div");
+          bottomRow.className = "history-row-bottom";
+
           function cell(text) {
             const span = document.createElement("span");
             span.textContent = text;
             return span;
           }
 
-          row.appendChild(cell(h.date));
-          row.appendChild(cell(h.motor));
-          row.appendChild(cell(h.voltage));
-          row.appendChild(cell(h.gear));
-          row.appendChild(cell(h.tire));
-          row.appendChild(cell(h.maxSpeed + " km/h"));
-          row.appendChild(cell(h.maxRpm));
-          row.appendChild(cell(h.avgRpm));
+          topRow.appendChild(cell(h.date));
+          topRow.appendChild(cell(h.motor));
+          topRow.appendChild(cell(h.motorType || "-"));
+          topRow.appendChild(cell(h.voltage));
+          topRow.appendChild(cell(h.gear + " / " + h.tire));
 
-          const reflect = document.createElement("button");
-          reflect.className = "reflect-btn";
-          reflect.textContent = "⇄";
-          reflect.title = "比較表に反映";
-          reflect.addEventListener("click", () => {
-            // トップ比較表に反映
-            voltageRange.value = parseFloat(h.voltage);
-            voltageLabel.textContent = h.voltage;
-            const gearIndex = gearOptions.indexOf(h.gear);
-            if (gearIndex >= 0) {
-              gearRange.value = gearIndex;
-              gearLabel.textContent = h.gear;
-            }
-            const tireVal = parseFloat(h.tire);
-            tireRange.value = tireVal;
-            tireLabel.textContent = tireVal.toFixed(1) + " mm";
-
-            buildComparisonTable(Number(h.avgRpm));
-
-            // 履歴用比較表に反映
-            historyComparisonBody.innerHTML = "";
-            const tr = document.createElement("tr");
-            [
-              h.motor,
-              h.voltage,
-              h.gear,
-              h.tire,
-              h.maxRpm,
-              h.avgRpm,
-              h.maxSpeed + " km/h",
-            ].forEach((val) => {
-              const td = document.createElement("td");
-              td.textContent = val;
-              tr.appendChild(td);
-            });
-            historyComparisonBody.appendChild(tr);
-          });
-          row.appendChild(reflect);
+          bottomRow.appendChild(cell("TOP " + h.topSpeed + " km/h"));
+          bottomRow.appendChild(cell("MAX " + h.maxRpm));
+          bottomRow.appendChild(cell("AVG " + h.avgRpm));
 
           const del = document.createElement("button");
           del.className = "delete-btn";
@@ -1097,34 +1191,73 @@
             populateFilterOptions();
             renderHistory();
           });
-          row.appendChild(del);
+          bottomRow.appendChild(del);
 
+          row.appendChild(topRow);
+          row.appendChild(bottomRow);
           historyList.appendChild(row);
         });
     }
 
-    [filterMotor, filterVoltage, filterGear, filterTire].forEach((sel) =>
+    [filterMotor, filterMotorType, filterVoltage, filterGear, filterTire].forEach((sel) =>
       sel.addEventListener("change", renderHistory)
     );
 
-    // 保存ボタン：保存名を求めて履歴に追加
-    saveBtn.addEventListener("click", () => {
-      const name = prompt("保存するモーター名を入力してください");
-      if (!name) return;
+    // --- 保存入力モーダル制御 ---
+    const saveModalBackdrop = document.getElementById("saveModalBackdrop");
+    const saveClose = document.getElementById("saveClose");
+    const saveNameInput = document.getElementById("saveNameInput");
+    const saveMotorTypeSelect = document.getElementById("saveMotorTypeSelect");
+    const saveCancelBtn = document.getElementById("saveCancelBtn");
+    const saveConfirmBtn = document.getElementById("saveConfirmBtn");
+
+    function openSaveModal() {
+      saveNameInput.value = "";
+      saveMotorTypeSelect.value = "";
+      saveModalBackdrop.style.display = "flex";
+    }
+    function closeSaveModal() {
+      saveModalBackdrop.style.display = "none";
+    }
+
+    saveClose.addEventListener("click", closeSaveModal);
+    saveCancelBtn.addEventListener("click", closeSaveModal);
+    saveModalBackdrop.addEventListener("click", (e) => {
+      if (e.target === saveModalBackdrop) closeSaveModal();
+    });
+
+    saveConfirmBtn.addEventListener("click", () => {
+      const name = saveNameInput.value.trim();
+      if (!name) {
+        alert("名前は必須です（8文字まで）。");
+        return;
+      }
+      if (name.length > 8) {
+        alert("名前は8文字までです。");
+        return;
+      }
+
+      const motorType = saveMotorTypeSelect.value || "";
 
       const newEntry = {
         date: new Date().toISOString().slice(2, 10).replace(/-/g, ""),
         motor: name,
+        motorType: motorType,
         voltage: voltageLabel.textContent,
         gear: gearLabel.textContent,
         tire: tireLabel.textContent,
-        maxSpeed: maxSpeedEl.textContent.replace(" km/h", ""),
+        topSpeed: maxSpeedEl.textContent.replace(" km/h", ""),
         maxRpm: maxRpmEl.textContent,
         avgRpm: avgRpmEl.textContent,
       };
       historyData.push(newEntry);
       populateFilterOptions();
       renderHistory();
+      closeSaveModal();
+    });
+
+    saveBtn.addEventListener("click", () => {
+      openSaveModal();
     });
 
     // --- モーダル制御 ---
