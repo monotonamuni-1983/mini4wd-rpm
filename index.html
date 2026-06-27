@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Motor Tachometer Pro</title>
+    <style>
+        :root { --bg: #f2f2f7; --card: #ffffff; --accent: #007aff; }
+        body { background-color: var(--bg); font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1c1c1e; padding: 15px; margin: 0; }
+        .container { max-width: 500px; margin: auto; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
+        .box { background: var(--card); padding: 12px; border-radius: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; }
+        .label { font-size: 0.65rem; color: #8e8e93; margin-bottom: 2px; }
+        .value { font-size: 1rem; font-weight: 700; }
+        .slider-box, .select-box, .history-box { background: var(--card); padding: 15px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 15px; }
+        button { padding: 15px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; }
+        #startBtn { background: var(--accent); color: white; }
+        #stopBtn { background: #ff3b30; color: white; }
+        #resetBtn, #saveBtn { background: #e5e5ea; }
+        select { width: 100%; padding: 12px; border-radius: 10px; font-size: 1rem; border: 1px solid #ccc; }
+        #canvas { width: 100%; height: 150px; background: #000; border-radius: 16px; display: block; touch-action: none; margin-bottom: 5px; }
+        .axis-labels { display: flex; justify-content: space-between; font-size: 0.6rem; color: #8e8e93; padding: 0 5px 15px; }
+        
+        /* 保存用モーダル */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 16px; width: 80%; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <canvas id="canvas"></canvas>
+    <div class="axis-labels"><span>0</span><span>200</span><span>500</span><span>1k</span><span>2k</span><span>5k</span><span>10k</span><span>20k</span><span>40k</span><span>50k</span></div>
+
+    <div class="grid">
+        <div class="box"><div class="label">RPM</div><div id="rpmCur" class="value">0</div></div>
+        <div class="box"><div class="label">MAX</div><div id="rpmMax" class="value">0</div></div>
+        <div class="box"><div class="label">MIN</div><div id="rpmMin" class="value">0</div></div>
+    </div>
+    <div class="grid">
+        <div class="box"><div class="label">SPEED</div><div id="spdCur" class="value">0.0</div></div>
+        <div class="box"><div class="label">MAX</div><div id="spdMax" class="value">0.0</div></div>
+        <div class="box"><div class="label">MIN</div><div id="spdMin" class="value">0.0</div></div>
+    </div>
+
+    <div class="controls">
+        <button id="startBtn">開始</button>
+        <button id="stopBtn" disabled>停止</button>
+        <button id="resetBtn">リセット</button>
+        <button id="saveBtn">保存</button>
+    </div>
+
+    <div class="slider-box">
+        <div class="label">タイヤ外径: <span id="tireVal">26.0</span>mm</div>
+        <input type="range" id="tireSlider" min="22.0" max="35.0" step="0.1" value="26.0" style="width: 100%;">
+    </div>
+
+    <div class="select-box">
+        <div class="label">ギア比選択</div>
+        <select id="gearSelect">
+            <option value="3.5">3.5:1</option>
+            <option value="3.7">3.7:1</option>
+            <option value="4.0">4.0:1</option>
+            <option value="4.2">4.2:1</option>
+        </select>
+    </div>
+
+    <div class="history-box">
+        <div class="label">履歴</div>
+        <ul id="historyList" style="padding-left: 20px; font-size: 0.8rem;"></ul>
+    </div>
+</div>
+
+<div id="modal">
+    <div class="modal-content">
+        <div class="label">名前</div>
+        <input type="text" id="nameInput" placeholder="例：テスト走行">
+        <div class="label">モーター</div>
+        <select id="motorSelect">
+            <option>ノーマル</option><option>ハイパーダッシュ</option><option>マッハダッシュ</option>
+        </select>
+        <button id="confirmBtn" style="width:100%; background:var(--accent); color:white; margin-top:10px;">OK</button>
+    </div>
+</div>
+
+<script>
+    // 省略：前回のJavaScriptロジックに以下を追加
+    el.save = document.getElementById('saveBtn');
+    el.modal = document.getElementById('modal');
+    el.confirm = document.getElementById('confirmBtn');
+    el.history = document.getElementById('historyList');
+
+    el.save.onclick = () => el.modal.style.display = 'flex';
+    el.confirm.onclick = () => {
+        const name = document.getElementById('nameInput').value || "無題";
+        const motor = document.getElementById('motorSelect').value;
+        const item = document.createElement('li');
+        item.textContent = `${name} (${motor}): MAX ${stats.maxRpm} RPM / ${stats.maxSpd.toFixed(1)} km/h`;
+        el.history.appendChild(item);
+        el.modal.style.display = 'none';
+    };
+    
+    // 他のコードはそのまま...
+</script>
+</body>
+</html>
