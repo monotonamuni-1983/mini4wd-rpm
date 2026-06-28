@@ -1,281 +1,21 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>Mini4WD RPM Analyzer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+let maxRpm = 0; // ★ 最大RPM記録
 
-<style>
-body {
-    font-family: sans-serif;
-    background: #fff;
-    margin: 0;
-    padding: 20px;
-}
-h2 {
-    margin-top: 0;
-}
-button {
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 999px;
-    border: 1px solid #ccc;
-    background: #f5f7ff;
-    cursor: pointer;
-    margin-right: 10px;
-}
-button:disabled {
-    background: #eee;
-}
-canvas {
-    width: 100%;
-    background: #fafafa;
-    margin-top: 20px;
-}
-#fftCanvas { height: 200px; }
-#rpmHzCanvas { height: 200px; }
-#rpmFlowCanvas { height: 150px; }
-
-.overlay {
-    position:absolute;
-    pointer-events:none;
-    width:100%;
-    height:200px;
-    top:0;
-    left:0;
-}
-
-#maxRpmBox {
-    margin-top:10px;
-    padding:8px;
-    background:#f0f0f0;
-    border-radius:8px;
-    font-size:20px;
-    font-weight:bold;
-}
-</style>
-</head>
-
-<body>
-
-<h2>Mini4WD RPM Analyzer</h2>
-
-<div id="status">集音開始ボタンを押してください。</div>
-
-<button id="startButton">集音開始</button>
-<button id="stopButton" disabled>集音停止</button>
-
-<div id="rpmDisplay">RPM: --</div>
-<div>揺れ幅：<span id="shakeHz">-- Hz</span></div>
-
-<!-- FFTスペクトラム -->
-<canvas id="fftCanvas"></canvas>
-
-<!-- RPM vs Hz グラフ -->
-<div style="position:relative;">
-    <canvas id="rpmHzCanvas"></canvas>
-    <canvas class="overlay" id="rpmHzOverlay"></canvas>
-</div>
-
-<!-- RPM時系列フローグラフ（右→左、0〜60s） -->
-<canvas id="rpmFlowCanvas"></canvas>
-
-<!-- 最大RPM表示枠 -->
-<div id="maxRpmBox">MAX RPM: --</div>
-
-<script>
-// ===============================
-// 基本変数
-// ===============================
-let audioCtx = null;
-let analyser = null;
-let dataArray = null;
-let sampleRate = 48000;
-let isRunning = false;
-let micStream = null;
-
-let rpmHistory = [];
-let fundamentalHistory = [];
-const MAX_HISTORY = 200;
-
-let maxRpm = 0;
-
-// Canvas
-const fftCanvas = document.getElementById("fftCanvas");
-const fftCtx = fftCanvas.getContext("2d");
-
-const rpmHzCanvas = document.getElementById("rpmHzCanvas");
-const rpmHzCtx = rpmHzCanvas.getContext("2d");
-
-const rpmHzOverlay = document.getElementById("rpmHzOverlay");
-const rpmHzOverlayCtx = rpmHzOverlay.getContext("2d");
-
-const rpmFlowCanvas = document.getElementById("rpmFlowCanvas");
-const rpmFlowCtx = rpmFlowCanvas.getContext("2d");
-
-const statusEl = document.getElementById("status");
-const startButton = document.getElementById("startButton");
-const stopButton = document.getElementById("stopButton");
-
-// ===============================
-// FFT描画
-// ===============================
-function drawFFT() {
-    const w = fftCanvas.width;
-    const h = fftCanvas.height;
-
-    fftCtx.clearRect(0, 0, w, h);
-    fftCtx.beginPath();
-    fftCtx.strokeStyle = "#ff2e9f";
-    fftCtx.lineWidth = 2;
-
-    for (let i = 0; i < dataArray.length; i++) {
-        const x = (i / dataArray.length) * w;
-        const v = dataArray[i];
-        const y = h - ((v + 140) / 80) * h;
-        if (i === 0) fftCtx.moveTo(x, y);
-        else fftCtx.lineTo(x, y);
-    }
-
-    fftCtx.stroke();
-}
-
-// ===============================
-// FFT解析範囲 100〜1800Hz で複数ピーク検出
-// ===============================
-function detectPeaks(dataArray, sampleRate) {
-    const fftSize = analyser.fftSize;
-
-    const minBin = Math.floor(100 * fftSize / sampleRate);
-    const maxBin = Math.floor(1800 * fftSize / sampleRate);
-
-    const peaks = [];
-
-    for (let i = minBin + 1; i < maxBin - 1; i++) {
-        if (dataArray[i] > dataArray[i - 1] &&
-            dataArray[i] > dataArray[i + 1]) {
-
-            peaks.push({
-                index: i,
-                value: dataArray[i],
-                freq: (i * sampleRate) / fftSize
-            });
-        }
-    }
-
-    return peaks;
-}
-
-// ===============================
-// 基本周波数抽出
-// ===============================
-function extractFundamental(peaks) {
-    if (peaks.length === 0) return 0;
-
-    peaks.sort((a, b) => b.value - a.value);
-
-    const candidates = [];
-
-    peaks.forEach(p => {
-        const f = p.freq;
-        candidates.push(f);
-        candidates.push(f / 2);
-        candidates.push(f / 3);
-        candidates.push(f / 4);
-    });
-
-    const valid = candidates.filter(f => f >= 100 && f <= 1800);
-
-    if (valid.length === 0) return 0;
-
-    return Math.min(...valid);
-}
-
-// ===============================
-// 揺れ幅測定
-// ===============================
-function recordFundamental(f) {
-    fundamentalHistory.push(f);
-    if (fundamentalHistory.length > MAX_HISTORY) {
-        fundamentalHistory.shift();
-    }
-}
-
-function getFundamentalShake() {
-    if (fundamentalHistory.length < 5) return 0;
-
-    const minF = Math.min(...fundamentalHistory);
-    const maxF = Math.max(...fundamentalHistory);
-
-    return maxF - minF;
-}
-
-// ===============================
-// 自動フィルタ
-// ===============================
-let filteredRpm = 0;
-
-function autoFilter(rpm, shakeHz) {
-    let alpha;
-
-    if (shakeHz < 50) alpha = 0.6;
-    else if (shakeHz < 120) alpha = 0.3;
-    else alpha = 0.1;
-
-    filteredRpm = filteredRpm * (1 - alpha) + rpm * alpha;
-    return filteredRpm;
-}
-
-// ===============================
-// RPM vs Hz グラフ
-// ===============================
-function drawRpmHzGraph(rpm, fundamentalHz) {
-    const w = rpmHzCanvas.width;
-    const h = rpmHzCanvas.height;
-
-    rpmHzCtx.clearRect(0, 0, w, h);
-
-    // 軸
-    rpmHzCtx.strokeStyle = "#333";
-    rpmHzCtx.beginPath();
-    rpmHzCtx.moveTo(40, 10);
-    rpmHzCtx.lineTo(40, h - 20);
-    rpmHzCtx.lineTo(w - 10, h - 20);
-    rpmHzCtx.stroke();
-
-    // プロット
-    rpmHzCtx.fillStyle = "#ff2e9f";
-    const x = 40 + (rpm / 50000) * (w - 60);
-    const y = (h - 20) - ((fundamentalHz - 100) / 1700) * (h - 40);
-
-    rpmHzCtx.beginPath();
-    rpmHzCtx.arc(x, y, 4, 0, Math.PI * 2);
-    rpmHzCtx.fill();
-
-    // オーバーレイ
-    rpmHzOverlayCtx.clearRect(0, 0, w, h);
-    rpmHzOverlayCtx.strokeStyle = "rgba(255,0,150,0.3)";
-    rpmHzOverlayCtx.lineWidth = 2;
-    rpmHzOverlayCtx.beginPath();
-    rpmHzOverlayCtx.arc(x, y, 10, 0, Math.PI * 2);
-    rpmHzOverlayCtx.stroke();
-}
-
-// ===============================
-// RPM時系列フローグラフ（右→左、0〜60s）
-// ===============================
 function drawRpmFlow(rpm) {
     const w = rpmFlowCanvas.width;
     const h = rpmFlowCanvas.height;
 
+    // 60秒分のデータ保持（300点）
     rpmHistory.push(rpm);
     if (rpmHistory.length > 300) rpmHistory.shift();
 
+    // ★ 最大RPM更新
     if (rpm > maxRpm) maxRpm = rpm;
 
     rpmFlowCtx.clearRect(0, 0, w, h);
 
-    // グリッド線（RPM）
+    // ===============================
+    // グリッド線（RPM基準）
+    // ===============================
     rpmFlowCtx.strokeStyle = "#e0e0e0";
     rpmFlowCtx.lineWidth = 1;
 
@@ -292,8 +32,28 @@ function drawRpmFlow(rpm) {
         rpmFlowCtx.fillText(`${r} RPM`, 5, y - 2);
     });
 
-    // 時間グリッド（0〜60s）
-    for (let x = w; x > 0; x -= w / 12) {
+    // ===============================
+    // 最大RPMライン（赤）
+    // ===============================
+    if (maxRpm > 5000) {
+        const maxY = h - ((maxRpm - 5000) / (60000 - 5000)) * h;
+
+        rpmFlowCtx.strokeStyle = "#ff0000";
+        rpmFlowCtx.lineWidth = 2;
+        rpmFlowCtx.beginPath();
+        rpmFlowCtx.moveTo(0, maxY);
+        rpmFlowCtx.lineTo(w, maxY);
+        rpmFlowCtx.stroke();
+
+        rpmFlowCtx.fillStyle = "#ff0000";
+        rpmFlowCtx.font = "12px sans-serif";
+        rpmFlowCtx.fillText(`MAX ${maxRpm.toFixed(0)} RPM`, 5, maxY - 4);
+    }
+
+    // ===============================
+    // 縦方向グリッド（時間軸）
+    // ===============================
+    for (let x = w; x > 0; x -= w / 12) { // 5秒ごと
         rpmFlowCtx.beginPath();
         rpmFlowCtx.moveTo(x, 0);
         rpmFlowCtx.lineTo(x, h);
@@ -304,13 +64,15 @@ function drawRpmFlow(rpm) {
         rpmFlowCtx.fillText(`${sec}s`, x + 2, 12);
     }
 
-    // RPMライン
+    // ===============================
+    // RPMライン描画（右→左へ流れる）
+    // ===============================
     rpmFlowCtx.strokeStyle = "#0077ff";
     rpmFlowCtx.lineWidth = 2;
     rpmFlowCtx.beginPath();
 
     for (let i = 0; i < rpmHistory.length; i++) {
-        const x = w - (i * (w / 300));
+        const x = w - (i * (w / 300)); // 300点＝60秒
         const y = h - ((rpmHistory[i] - 5000) / (60000 - 5000)) * h;
 
         if (i === 0) rpmFlowCtx.moveTo(x, y);
@@ -318,102 +80,4 @@ function drawRpmFlow(rpm) {
     }
 
     rpmFlowCtx.stroke();
-
-    // 最大RPM表示枠更新
-    document.getElementById("maxRpmBox").textContent =
-        `MAX RPM: ${maxRpm.toFixed(0)}`;
 }
-
-// ===============================
-// メインループ
-// ===============================
-function mainLoop() {
-    if (!isRunning) return;
-    requestAnimationFrame(mainLoop);
-
-    analyser.getFloatFrequencyData(dataArray);
-
-    const peaks = detectPeaks(dataArray, sampleRate);
-    const fundamentalHz = extractFundamental(peaks);
-    if (fundamentalHz === 0) return;
-
-    recordFundamental(fundamentalHz);
-    const shakeHz = getFundamentalShake();
-
-    const rpm = fundamentalHz * 60 * 1.02;
-    const stableRpm = autoFilter(rpm, shakeHz);
-
-    document.getElementById("rpmDisplay").textContent =
-        `RPM: ${stableRpm.toFixed(0)}`;
-
-    document.getElementById("shakeHz").textContent =
-        `${shakeHz.toFixed(1)} Hz`;
-
-    drawFFT();
-    drawRpmHzGraph(stableRpm, fundamentalHz);
-    drawRpmFlow(stableRpm);
-}
-
-// ===============================
-// 集音開始
-// ===============================
-startButton.addEventListener("click", async () => {
-    statusEl.textContent = "マイク許可をリクエスト中…";
-
-    try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        statusEl.textContent = "集音中…";
-
-        audioCtx = new AudioContext();
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 4096;
-
-        dataArray = new Float32Array(analyser.frequencyBinCount);
-
-        const source = audioCtx.createMediaStreamSource(micStream);
-        source.connect(analyser);
-
-        sampleRate = audioCtx.sampleRate;
-
-        isRunning = true;
-        startButton.disabled = true;
-        stopButton.disabled = false;
-
-        fundamentalHistory = [];
-        rpmHistory = [];
-        filteredRpm = 0;
-        maxRpm = 0;
-
-        mainLoop();
-
-    } catch (e) {
-        console.error(e);
-        statusEl.textContent = "マイク許可が拒否されました。設定から許可してください。";
-    }
-});
-
-// ===============================
-// 集音停止
-// ===============================
-stopButton.addEventListener("click", () => {
-    isRunning = false;
-
-    if (micStream) {
-        micStream.getTracks().forEach(t => t.stop());
-        micStream = null;
-    }
-
-    if (audioCtx) {
-        audioCtx.close();
-        audioCtx = null;
-    }
-
-    stopButton.disabled = true;
-    startButton.disabled = false;
-    statusEl.textContent = "停止中…";
-});
-</script>
-
-</body>
-</html>
