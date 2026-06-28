@@ -1,0 +1,312 @@
+/* =========================
+   基本レイアウト
+========================= */
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  font-family: "Noto Sans JP", sans-serif;
+  color: #333;
+}
+
+/* =========================
+   ヘッダー
+========================= */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: #f5f7ff;
+  border-bottom: 1px solid #dce3f7;
+}
+
+.header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #4a6cff;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+/* 右上ボタン（オーバル化 + 一回り大きく） */
+.header-buttons button {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #e6ecff;
+  color: #4a6cff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  transition: transform 0.1s ease;
+}
+
+.header-buttons button:active {
+  transform: scale(0.95);
+}
+
+/* =========================
+   メイン
+========================= */
+
+.main-container {
+  padding: 16px;
+}
+
+canvas {
+  width: 100%;
+  height: 160px;
+  background: #fdfdff;
+  border-radius: 12px;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.08);
+}
+
+/* =========================
+   計測条件カード
+========================= */
+
+.condition-card {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f5f7ff;
+  border-radius: 12px;
+}
+
+.condition-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* スライダー（オーバル化） */
+input[type="range"] {
+  width: 100%;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: #e3e7f5;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #ffffff;
+  border-radius: 50%;
+  border: 2px solid #4a6cff;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #ffffff;
+  border-radius: 50%;
+  border: 2px solid #4a6cff;
+}
+
+/* =========================
+   4ボタン
+========================= */
+
+.realtime-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 14px 0;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: none;
+}
+
+.primary-btn {
+  background: #ff4fa3;
+  color: #fff;
+}
+
+.secondary-btn {
+  background: #e6ecff;
+  color: #4a6cff;
+}
+
+/* =========================
+   結果カード
+========================= */
+
+.result-card {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f5f7ff;
+  border-radius: 12px;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.9rem;
+}
+
+/* =========================
+   モーダル共通
+========================= */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.modal {
+  width: 100%;
+  max-width: 480px;
+  background: #f5f7fc;
+  border-radius: 18px 18px 0 0;
+  padding: 16px;
+  position: relative;
+}
+
+.hidden {
+  display: none;
+}
+
+/* =========================
+   履歴モーダル
+========================= */
+
+#historyModalBackdrop .modal {
+  height: 75vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* フィルタUI */
+.history-filter {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.history-filter select {
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #c7d6ff;
+  background: #ffffff;
+  font-size: 0.82rem;
+  color: #334;
+}
+
+/* 固定ヘッダー */
+.history-header-fixed {
+  position: sticky;
+  top: 0;
+  background: #e6ecff;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: grid;
+  grid-template-columns: 60px 80px 60px 60px 60px 60px 60px 60px;
+  border-bottom: 1px solid #c7d6ff;
+  z-index: 5;
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 6px;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: 60px 80px 60px 60px 60px 60px 60px 60px;
+  padding: 8px 6px;
+  border-bottom: 1px solid #e3e7f5;
+  font-size: 0.82rem;
+}
+
+/* ハイライト（電圧行） */
+.highlight-row {
+  background: rgba(120, 160, 255, 0.18);
+  font-weight: 600;
+}
+
+/* ハイライト（ギヤ比列） */
+.highlight-col {
+  background: rgba(255, 150, 200, 0.18);
+  font-weight: 600;
+}
+
+/* =========================
+   設定モーダル
+========================= */
+
+.setting-item {
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.setting-label {
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* 説明ボタン */
+.help-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e6ecff;
+  color: #4a6cff;
+  font-weight: 700;
+  border: none;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* 説明文 */
+.help-text {
+  margin-top: 14px;
+  background: #f5f7ff;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #334;
+}
+
+/* 閉じるボタン */
+.close-btn {
+  margin-top: 16px;
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 999px;
+  background: #e6ecff;
+  color: #4a6cff;
+  font-weight: 600;
+  border: none;
+}
