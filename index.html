@@ -66,72 +66,25 @@ canvas {
 
 <script>
 // ===============================
-// 変数定義
+// 基本変数
 // ===============================
 let audioCtx = null;
 let analyser = null;
 let dataArray = null;
 let sampleRate = 48000;
 let isRunning = false;
+let micStream = null;
 
-// 周波数揺れ計測バッファ
-let freqHistory = [];
-const MAX_HISTORY = 200;
+const canvas = document.getElementById("fftCanvas");
+const ctx = canvas.getContext("2d");
 
-// ===============================
-// 周波数記録・揺れ幅計算
-// ===============================
-function recordFrequency(peakHz) {
-    freqHistory.push(peakHz);
-    if (freqHistory.length > MAX_HISTORY) {
-        freqHistory.shift();
-    }
-}
-
-function getFrequencyShake() {
-    if (freqHistory.length < 5) return {min:0, max:0, shake:0};
-
-    const minHz = Math.min(...freqHistory);
-    const maxHz = Math.max(...freqHistory);
-
-    return {
-        min: minHz,
-        max: maxHz,
-        shake: maxHz - minHz
-    };
-}
-
-// ===============================
-// FFT ピーク検出
-// ===============================
-function detectPeak(dataArray, sampleRate) {
-    let maxVal = -Infinity;
-    let maxIndex = 0;
-
-    for (let i = 0; i < dataArray.length; i++) {
-        if (dataArray[i] > maxVal) {
-            maxVal = dataArray[i];
-            maxIndex = i;
-        }
-    }
-
-    const peakHz = (maxIndex * sampleRate) / (dataArray.length * 2);
-    return peakHz;
-}
-
-// ===============================
-// RPM 計算
-// ===============================
-function computeRpm(peakHz) {
-    return peakHz * 60;
-}
+const statusEl = document.getElementById("status");
+const startButton = document.getElementById("startButton");
+const stopButton = document.getElementById("stopButton");
 
 // ===============================
 // FFT描画
 // ===============================
-const canvas = document.getElementById("fftCanvas");
-const ctx = canvas.getContext("2d");
-
 function drawFFT() {
     if (!ctx || !dataArray) return;
 
@@ -155,48 +108,130 @@ function drawFFT() {
 }
 
 // ===============================
-// メインループ
+// ① FFT解析範囲 100〜1800Hz で複数ピーク検出
+// ===============================
+function detectPeaks(dataArray, sampleRate) {
+    const fftSize = analyser.fftSize;
+
+    const minBin = Math.floor(100 * fftSize / sampleRate);
+    const maxBin = Math.floor(1800 * fftSize / sampleRate);
+
+    const peaks = [];
+
+    for (let i = minBin + 1; i < maxBin - 1; i++) {
+        if (dataArray[i] > dataArray[i - 1] &&
+            dataArray[i] > dataArray[i + 1]) {
+
+            peaks.push({
+                index: i,
+                value: dataArray[i],
+                freq: (i * sampleRate) / fftSize
+            });
+        }
+    }
+
+    return peaks;
+}
+
+// ===============================
+// ② 複数ピークから基本周波数抽出
+// ===============================
+function extractFundamental(peaks) {
+    if (peaks.length === 0) return 0;
+
+    peaks.sort((a, b) => b.value - a.value);
+
+    const candidates = [];
+
+    peaks.forEach(p => {
+        const f = p.freq;
+        candidates.push(f);
+        candidates.push(f / 2);
+        candidates.push(f / 3);
+        candidates.push(f / 4);
+    });
+
+    const valid = candidates.filter(f => f >= 100 && f <= 1800);
+
+    if (valid.length === 0) return 0;
+
+    return Math.min(...valid);
+}
+
+// ===============================
+// ③ 基本周波数の揺れ幅測定
+// ===============================
+let fundamentalHistory = [];
+const MAX_F_HISTORY = 200;
+
+function recordFundamental(f) {
+    fundamentalHistory.push(f);
+    if (fundamentalHistory.length > MAX_F_HISTORY) {
+        fundamentalHistory.shift();
+    }
+}
+
+function getFundamentalShake() {
+    if (fundamentalHistory.length < 5) return 0;
+
+    const minF = Math.min(...fundamentalHistory);
+    const maxF = Math.max(...fundamentalHistory);
+
+    return maxF - minF;
+}
+
+// ===============================
+// ④ 揺れ幅に応じた自動フィルタ
+// ===============================
+let filteredRpm = 0;
+
+function autoFilter(rpm, shakeHz) {
+    let alpha;
+
+    if (shakeHz < 50) alpha = 0.6;        // 高速反応
+    else if (shakeHz < 120) alpha = 0.3; // 中間
+    else alpha = 0.1;                    // 安定重視
+
+    filteredRpm = filteredRpm * (1 - alpha) + rpm * alpha;
+    return filteredRpm;
+}
+
+// ===============================
+// メインループ（統合ロジック）
 // ===============================
 function mainLoop() {
     if (!isRunning) return;
-
     requestAnimationFrame(mainLoop);
 
     analyser.getFloatFrequencyData(dataArray);
 
-    let peakHz = detectPeak(dataArray, sampleRate);
+    const peaks = detectPeaks(dataArray, sampleRate);
+    const fundamentalHz = extractFundamental(peaks);
+    if (fundamentalHz === 0) return;
 
-    // ★ 周波数範囲フィルタ（100〜1800Hz）
-    if (peakHz < 100 || peakHz > 1800) return;
+    recordFundamental(fundamentalHz);
+    const shakeHz = getFundamentalShake();
 
-    recordFrequency(peakHz);
-
-    // ★ 補正係数 1.02
-    const rpm = computeRpm(peakHz) * 1.02;
+    const rpm = fundamentalHz * 60 * 1.02; // 補正係数 1.02
+    const stableRpm = autoFilter(rpm, shakeHz);
 
     document.getElementById("rpmDisplay").textContent =
-        `RPM: ${rpm.toFixed(0)}`;
+        `RPM: ${stableRpm.toFixed(0)}`;
 
-    const shakeInfo = getFrequencyShake();
     document.getElementById("shakeHz").textContent =
-        `${shakeInfo.shake.toFixed(1)} Hz`;
+        `${shakeHz.toFixed(1)} Hz`;
 
     drawFFT();
 }
 
 // ===============================
-// ★ 集音開始ボタン → マイク許可 → 計測開始
+// 集音開始 → 許可 → 計測開始
 // ===============================
-const statusEl = document.getElementById("status");
-const startButton = document.getElementById("startButton");
-const stopButton = document.getElementById("stopButton");
-
 startButton.addEventListener("click", async () => {
     statusEl.textContent = "マイク許可をリクエスト中…";
 
     try {
-        // ★ ボタンを押した瞬間にマイク許可
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
         statusEl.textContent = "集音中…";
 
@@ -206,7 +241,7 @@ startButton.addEventListener("click", async () => {
 
         dataArray = new Float32Array(analyser.frequencyBinCount);
 
-        const source = audioCtx.createMediaStreamSource(stream);
+        const source = audioCtx.createMediaStreamSource(micStream);
         source.connect(analyser);
 
         sampleRate = audioCtx.sampleRate;
@@ -214,6 +249,9 @@ startButton.addEventListener("click", async () => {
         isRunning = true;
         startButton.disabled = true;
         stopButton.disabled = false;
+
+        fundamentalHistory = [];
+        filteredRpm = 0;
 
         mainLoop();
 
@@ -224,10 +262,21 @@ startButton.addEventListener("click", async () => {
 });
 
 // ===============================
-// ★ 測定停止ボタン
+// 集音停止（マイクも完全停止）
 // ===============================
 stopButton.addEventListener("click", () => {
     isRunning = false;
+
+    if (micStream) {
+        micStream.getTracks().forEach(t => t.stop());
+        micStream = null;
+    }
+
+    if (audioCtx) {
+        audioCtx.close();
+        audioCtx = null;
+    }
+
     stopButton.disabled = true;
     startButton.disabled = false;
     statusEl.textContent = "停止中…";
