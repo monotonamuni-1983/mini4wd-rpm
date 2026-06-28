@@ -10,20 +10,41 @@ body {
     font-family: sans-serif;
     background: #fff;
     margin: 0;
-    padding: 0;
+    padding: 20px;
+}
+h2 {
+    margin-top: 0;
 }
 #rpmDisplay {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: bold;
-    margin: 20px;
+    margin: 10px 0;
 }
 #shakeHz {
-    font-size: 24px;
-    margin: 20px;
+    font-size: 22px;
+    margin: 10px 0;
+}
+#status {
+    margin: 10px 0;
+    color: #555;
+}
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 999px;
+    border: 1px solid #ccc;
+    background: #f5f7ff;
+    cursor: pointer;
+}
+button:disabled {
+    background: #eee;
+    cursor: default;
 }
 canvas {
     width: 100%;
     height: 200px;
+    background: #fafafa;
+    margin-top: 20px;
 }
 </style>
 </head>
@@ -31,26 +52,32 @@ canvas {
 <body>
 
 <h2>Mini4WD RPM Analyzer</h2>
+
+<div id="status">マイク許可待ち…</div>
+<button id="startButton" disabled>集音開始</button>
+
 <div id="rpmDisplay">RPM: --</div>
 <div>揺れ幅：<span id="shakeHz">-- Hz</span></div>
+
 <canvas id="fftCanvas"></canvas>
 
 <script>
 // ===============================
-// Audio 初期化
+// 変数定義
 // ===============================
-let audioCtx;
-let analyser;
-let dataArray;
+let audioCtx = null;
+let analyser = null;
+let dataArray = null;
 let sampleRate = 48000;
+let isRunning = false;
 
-// ===============================
 // 周波数揺れ計測バッファ
-// ===============================
 let freqHistory = [];
 const MAX_HISTORY = 200;
 
-// 周波数記録
+// ===============================
+// 周波数記録・揺れ幅計算
+// ===============================
 function recordFrequency(peakHz) {
     freqHistory.push(peakHz);
     if (freqHistory.length > MAX_HISTORY) {
@@ -58,7 +85,6 @@ function recordFrequency(peakHz) {
     }
 }
 
-// 揺れ幅計算
 function getFrequencyShake() {
     if (freqHistory.length < 5) return {min:0, max:0, shake:0};
 
@@ -98,9 +124,39 @@ function computeRpm(peakHz) {
 }
 
 // ===============================
+// 描画（FFT波形はダミー簡易表示）
+// ===============================
+const canvas = document.getElementById("fftCanvas");
+const ctx = canvas.getContext("2d");
+
+function drawFFT() {
+    if (!ctx || !dataArray) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.beginPath();
+    ctx.strokeStyle = "#ff2e9f";
+    ctx.lineWidth = 2;
+
+    for (let i = 0; i < dataArray.length; i++) {
+        const x = (i / dataArray.length) * w;
+        const v = dataArray[i];
+        const y = h - ((v + 140) / 80) * h; // ざっくりスケーリング
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+
+    ctx.stroke();
+}
+
+// ===============================
 // メインループ
 // ===============================
 function mainLoop() {
+    if (!isRunning) return;
+
     requestAnimationFrame(mainLoop);
 
     analyser.getFloatFrequencyData(dataArray);
@@ -115,28 +171,55 @@ function mainLoop() {
     const shakeInfo = getFrequencyShake();
     document.getElementById("shakeHz").textContent =
         `${shakeInfo.shake.toFixed(1)} Hz`;
+
+    drawFFT();
 }
 
 // ===============================
-// Audio Start
+// マイク許可 → 集音開始ボタン
 // ===============================
-async function startAudio() {
+const statusEl = document.getElementById("status");
+const startButton = document.getElementById("startButton");
+
+async function prepareMic() {
+    try {
+        statusEl.textContent = "マイク許可をリクエスト中…";
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        statusEl.textContent = "マイク許可OK。集音開始ボタンを押してください。";
+        startButton.disabled = false;
+
+        // AudioContext は開始ボタン押下時に作る
+        startButton.addEventListener("click", () => startAudio(stream), { once: true });
+
+    } catch (e) {
+        console.error(e);
+        statusEl.textContent = "マイク許可が拒否されました。設定からマイクを許可してください。";
+    }
+}
+
+async function startAudio(stream) {
+    statusEl.textContent = "集音中…";
+    startButton.disabled = true;
+
     audioCtx = new AudioContext();
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 4096;
 
     dataArray = new Float32Array(analyser.frequencyBinCount);
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const source = audioCtx.createMediaStreamSource(stream);
     source.connect(analyser);
 
     sampleRate = audioCtx.sampleRate;
 
+    isRunning = true;
     mainLoop();
 }
 
-startAudio();
+// ページ読み込み時にマイク準備
+prepareMic();
 </script>
 
 </body>
