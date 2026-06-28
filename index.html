@@ -95,10 +95,14 @@
         <select id="filterVoltage"><option value="">電圧指定なし</option></select>
         <select id="filterGear"><option value="">ギヤ比指定なし</option></select>
         <select id="filterTire"><option value="">タイヤ径指定なし</option></select>
+        <select id="filterMotor"><option value="">モーター指定なし</option></select>
+        <select id="filterName"><option value="">名前指定なし</option></select>
       </div>
 
       <div class="history-header-fixed">
         <span>日付</span>
+        <span>名前</span>
+        <span>モーター</span>
         <span>電圧</span>
         <span>ギヤ比</span>
         <span>タイヤ径</span>
@@ -109,6 +113,37 @@
       <div class="history-list" id="historyList"></div>
 
       <button id="closeHistory" class="close-btn">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 保存モーダル -->
+  <div id="saveModalBackdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-title">保存</div>
+
+      <div class="setting-item">
+        <div class="setting-label">名前（8文字まで）</div>
+        <input id="saveNameInput" type="text" maxlength="8" class="text-input" />
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label">モーター種類</div>
+        <select id="motorTypeSelect" class="text-input">
+          <option value="">選択なし</option>
+          <option value="アトミック">アトミック</option>
+          <option value="レブ">レブ</option>
+          <option value="トルク">トルク</option>
+          <option value="ハイパーダッシュ">ハイパーダッシュ</option>
+          <option value="マッハダッシュ">マッハダッシュ</option>
+          <option value="パワーダッシュ">パワーダッシュ</option>
+          <option value="ライトダッシュ">ライトダッシュ</option>
+        </select>
+      </div>
+
+      <div class="save-buttons">
+        <button id="saveConfirmBtn" class="primary-btn">保存する</button>
+        <button id="saveCancelBtn" class="close-btn">キャンセル</button>
+      </div>
     </div>
   </div>
 

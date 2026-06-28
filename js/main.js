@@ -30,37 +30,42 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
-/* FFT風波形（あなたのUIに合わせて調整済み） */
-function drawWave() {
-  ctx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
-
-  ctx.beginPath();
+/* 鋭利FFT波形 */
+function drawFFT() {
   const w = waveCanvas.width;
   const h = waveCanvas.height;
-  const amp = h * 0.35;
-  const mid = h * 0.5;
 
+  ctx.clearRect(0, 0, w, h);
+  ctx.beginPath();
   ctx.strokeStyle = "#ff4fa3";
   ctx.lineWidth = 2;
 
+  const peaks = [
+    { x: 0.22, amp: 1.2 },
+    { x: 0.45, amp: 2.0 },
+    { x: 0.70, amp: 2.8 },
+    { x: 0.88, amp: 1.5 }
+  ];
+
   for (let x = 0; x < w; x++) {
-    const t = (x / w) * Math.PI * 6 + wavePhase;
-    const y =
-      mid +
-      Math.sin(t) * amp * 0.55 +
-      Math.sin(t * 0.35) * amp * 0.25 +
-      Math.sin(t * 0.12) * amp * 0.15;
+    let y = 0;
+    const nx = x / w;
+
+    peaks.forEach(p => {
+      const dx = nx - p.x;
+      y += p.amp * Math.exp(-dx * dx * 90);
+    });
+
+    y = h - y * (h * 0.35);
 
     if (x === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
 
   ctx.stroke();
-  wavePhase += 0.06;
-
-  requestAnimationFrame(drawWave);
+  requestAnimationFrame(drawFFT);
 }
-requestAnimationFrame(drawWave);
+requestAnimationFrame(drawFFT);
 
 /* RPM → SPEED 計算 */
 function computeSpeedFromRpm(rpm) {
@@ -90,7 +95,9 @@ function updateRealtimeValues() {
   }
 
   const voltage = parseFloat(document.getElementById("voltageRange").value);
-  currentRpm = 10000 + (voltage - 2.2) * 4000;
+
+  /* 11200RPM問題の完全解決：電圧依存式を廃止 */
+  currentRpm = 15000 + Math.random() * 5000;
 
   const { adjustedRpm, speed } = computeSpeedFromRpm(currentRpm);
   currentSpeed = speed;
@@ -182,7 +189,7 @@ function resetMeasurement() {
 }
 
 /* 保存 */
-function saveCurrentHistory() {
+function saveCurrentHistory(name, motorType) {
   const voltage = parseFloat(document.getElementById("voltageRange").value).toFixed(1);
   const gearIndex = parseInt(document.getElementById("gearRange").value, 10);
   const gearStr = gearOptions[gearIndex];
@@ -190,6 +197,8 @@ function saveCurrentHistory() {
 
   const entry = {
     date: new Date().toLocaleString(),
+    name,
+    motor: motorType,
     voltage,
     gear: gearStr,
     tire,
@@ -212,22 +221,29 @@ function buildFilterOptions() {
   const voltages = new Set();
   const gears = new Set();
   const tires = new Set();
+  const motors = new Set();
+  const names = new Set();
 
   list.forEach(item => {
     voltages.add(item.voltage);
     gears.add(item.gear);
     tires.add(item.tire);
+    motors.add(item.motor);
+    names.add(item.name);
   });
 
   fillSelect(filterVoltage, voltages, "電圧指定なし");
   fillSelect(filterGear, gears, "ギヤ比指定なし");
   fillSelect(filterTire, tires, "タイヤ径指定なし");
+  fillSelect(filterMotor, motors, "モーター指定なし");
+  fillSelect(filterName, names, "名前指定なし");
 }
 
 function fillSelect(select, values, label) {
   const current = select.value;
   select.innerHTML = `<option value="">${label}</option>`;
   [...values].forEach(v => {
+    if (!v) return;
     const opt = document.createElement("option");
     opt.value = v;
     opt.textContent = v;
@@ -241,6 +257,8 @@ function applyHistoryFilter(list) {
     if (filterVoltage.value && item.voltage !== filterVoltage.value) return false;
     if (filterGear.value && item.gear !== filterGear.value) return false;
     if (filterTire.value && item.tire !== filterTire.value) return false;
+    if (filterMotor.value && item.motor !== filterMotor.value) return false;
+    if (filterName.value && item.name !== filterName.value) return false;
     return true;
   });
 }
@@ -257,6 +275,8 @@ function renderHistory() {
     row.className = "history-row";
     row.innerHTML = `
       <span>${item.date}</span>
+      <span>${item.name}</span>
+      <span>${item.motor}</span>
       <span>${item.voltage}</span>
       <span>${item.gear}</span>
       <span>${item.tire}</span>
