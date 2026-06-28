@@ -1,0 +1,255 @@
+/* ================================
+   全体レイアウト
+================================ */
+html, body {
+    margin: 0;
+    padding: 16px 12px 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0d0d0f;
+    color: #e8e8e8;
+}
+
+.app-shell {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* ================================
+   ヘッダー
+================================ */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.header-title {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.header-icons {
+    display: flex;
+    gap: 16px;
+}
+
+.header-icon {
+    font-size: 22px;
+    cursor: pointer;
+}
+
+/* ================================
+   カード
+================================ */
+.card {
+    background: #16161a;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 16px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.35);
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.card-caption {
+    font-size: 12px;
+    opacity: 0.65;
+}
+
+/* ================================
+   FFT
+================================ */
+#spectrum {
+    width: 100%;
+    height: 110px;
+    background: #0f0f12;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+.standby-text {
+    margin-top: 6px;
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+/* ================================
+   リアルタイム値
+================================ */
+.realtime-values {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+}
+
+.value-block {
+    width: 32%;
+    background: #1b1b20;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.value-label {
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+.value-number {
+    font-size: 20px;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+/* ================================
+   ボタン
+================================ */
+.btn-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 14px;
+}
+
+.btn {
+    width: 24%;
+    padding: 10px 0;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
+}
+
+.primary { background: #007aff; color: white; }
+.secondary { background: #2c2c33; color: #e8e8e8; }
+.outline { background: transparent; border: 1px solid #888; color: #e8e8e8; }
+.gray { background: #444; color: #ddd; }
+
+/* ================================
+   スライダー
+================================ */
+.settings-row { margin-top: 10px; }
+
+.setting-item { margin-bottom: 14px; }
+
+.setting-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+input[type="range"] {
+    width: 100%;
+}
+
+/* ================================
+   テーブル
+================================ */
+.table-wrapper { overflow-x: auto; }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th, td {
+    padding: 6px 4px;
+    font-size: 12px;
+    text-align: center;
+}
+
+th { background: #222; }
+tr:nth-child(even) { background: #1a1a1d; }
+
+/* ================================
+   モーダル
+================================ */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+}
+
+.modal {
+    width: 90%;
+    max-width: 420px;
+    background: #16161a;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.modal-close {
+    font-size: 22px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #e8e8e8;
+}
+
+.input-modal-body { margin-top: 14px; }
+
+.input-row { margin-bottom: 14px; }
+
+.input-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.small-btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.history-list {
+    margin-top: 12px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.history-row {
+    background: #1b1b20;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.history-row-top,
+.history-row-bottom {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #ff6666;
+}

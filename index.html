@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini4WD RPM Analyzer</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <div class="app-shell">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-title">RPM Analyzer</div>
+      <div class="header-icons">
+        <div id="historyIcon" class="header-icon">📘</div>
+        <div id="settingsIcon" class="header-icon">⚙️</div>
+      </div>
+    </header>
+
+    <!-- FFT -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">FFTスペクトラム</div>
+        <div class="card-caption" id="fftStatusLabel">STANDBY</div>
+      </div>
+
+      <canvas id="spectrum"></canvas>
+      <div id="standbyText" class="standby-text">STANDBY</div>
+    </section>
+
+    <!-- REALTIME -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">リアルタイム計測</div>
+      </div>
+
+      <div class="realtime-values">
+        <div class="value-block">
+          <div class="value-label">RPM</div>
+          <div class="value-number" id="avgRpm">0</div>
+        </div>
+
+        <div class="value-block">
+          <div class="value-label">MAX</div>
+          <div class="value-number" id="maxRpm">0</div>
+        </div>
+
+        <div class="value-block">
+          <div class="value-label">MIN</div>
+          <div class="value-number" id="minRpm">0</div>
+        </div>
+      </div>
+
+      <div class="realtime-values">
+        <div class="value-block">
+          <div class="value-label">SPEED</div>
+          <div class="value-number" id="avgSpeed">0.00 km/h</div>
+        </div>
+
+        <div class="value-block">
+          <div class="value-label">TOP</div>
+          <div class="value-number" id="maxSpeed">0.00 km/h</div>
+        </div>
+
+        <div class="value-block">
+          <div class="value-label">MIN</div>
+          <div class="value-number" id="minSpeed">0.00 km/h</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button id="startBtn" class="btn primary">計測開始</button>
+        <button id="lockBtn" class="btn gray">ロック</button>
+        <button id="saveBtn" class="btn secondary">保存</button>
+        <button id="resetBtn" class="btn outline">リセット</button>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">計測条件</div>
+      </div>
+
+      <div class="settings-row">
+
+        <div class="setting-item">
+          <div class="setting-label">
+            <span>電圧</span>
+            <span id="voltageLabel">2.8 V</span>
+          </div>
+          <input type="range" id="voltageRange" min="2.2" max="3.4" step="0.1" value="2.8">
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-label">
+            <span>ギヤ比</span>
+            <span id="gearLabel">3.5:1</span>
+          </div>
+          <input type="range" id="gearRange" min="0" max="7" step="1" value="0">
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-label">
+            <span>タイヤ径</span>
+            <span id="tireLabel">26.0 mm</span>
+          </div>
+          <input type="range" id="tireRange" min="20" max="32" step="0.5" value="26">
+        </div>
+
+      </div>
+    </section>
+
+    <!-- COMPARISON TABLE -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">比較表</div>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>電圧</th>
+              <th>モーターRPM</th>
+              <th>3.5:1</th>
+              <th>3.7:1</th>
+              <th>4.0:1</th>
+              <th>4.2:1</th>
+              <th>5.0:1</th>
+              <th>6.4:1</th>
+              <th>8.75:1</th>
+              <th>11.2:1</th>
+            </tr>
+          </thead>
+          <tbody id="comparisonBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- JS -->
+  <script src="js/preset.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+
+</body>
+</html>
