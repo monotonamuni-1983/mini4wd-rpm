@@ -23,10 +23,7 @@ const speedNow = document.getElementById("speedNow");
 const speedTop = document.getElementById("speedTop");
 const speedMin = document.getElementById("speedMin");
 const historyList = document.getElementById("historyList");
-const UI = {
-  statusLine: document.getElementById("statusLine"),
-  lockBtn: document.getElementById("lockBtn")
-};
+
 
 
 /* キャンバスサイズ調整 */
