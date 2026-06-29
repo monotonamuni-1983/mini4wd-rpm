@@ -2,90 +2,69 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Mini4WD FFT Comparison (2048 vs 4096)</title>
+<title>Mini4WD FFT Comparison (2048 - 16384)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .fft-row { display: flex; gap: 20px; }
-    .fft-box { flex: 1; text-align: center; }
-    canvas { width: 100%; height: 150px; background: #eee; }
-    #status { margin: 10px 0; color: #666; }
-    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    body { font-family: sans-serif; padding: 10px; background: #f9f9f9; }
+    .fft-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+    .fft-box { background: white; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    canvas { width: 100%; height: 100px; background: #eee; margin-top: 5px; }
+    .rpm-text { font-weight: bold; font-size: 18px; color: #ff008c; }
+    button { padding: 15px 30px; font-size: 18px; cursor: pointer; width: 100%; margin-bottom: 10px; }
 </style>
 </head>
 <body>
 
-<h2>Mini4WD FFT 比較 ver10 (2048 vs 4096)</h2>
-<div id="status">ボタンで集音開始</div>
+<h2>Mini4WD FFT 比較 ver100</h2>
 <button id="startButton">集音開始</button>
+<div id="status">ボタンを押してください</div>
 
-<div class="fft-row">
-    <div class="fft-box">
-        <h3>FFT 2048</h3>
-        <div id="rpm2048" style="font-weight:bold; font-size:20px;">RPM: --</div>
-        <canvas id="canvas2048"></canvas>
-    </div>
-    <div class="fft-box">
-        <h3>FFT 4096</h3>
-        <div id="rpm4096" style="font-weight:bold; font-size:20px;">RPM: --</div>
-        <canvas id="canvas4096"></canvas>
-    </div>
+<div class="fft-container">
+    <div class="fft-box">FFT 2048<div id="rpm2048" class="rpm-text">--</div><canvas id="canvas2048"></canvas></div>
+    <div class="fft-box">FFT 4096<div id="rpm4096" class="rpm-text">--</div><canvas id="canvas4096"></canvas></div>
+    <div class="fft-box">FFT 8192<div id="rpm8192" class="rpm-text">--</div><canvas id="canvas8192"></canvas></div>
+    <div class="fft-box">FFT 16384<div id="rpm16384" class="rpm-text">--</div><canvas id="canvas16384"></canvas></div>
 </div>
 
 <script>
-let audioCtx, analyser2048, analyser4096;
-let data2048, data4096;
-let isRunning = false;
+let audioCtx;
+const fftSizes = [2048, 4096, 8192, 16384];
+const analysers = {};
+const dataArrays = {};
 
 async function startAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const source = audioCtx.createMediaStreamSource(stream);
 
-    analyser2048 = audioCtx.createAnalyser();
-    analyser2048.fftSize = 2048;
-    data2048 = new Float32Array(analyser2048.frequencyBinCount);
+    fftSizes.forEach(size => {
+        analysers[size] = audioCtx.createAnalyser();
+        analysers[size].fftSize = size;
+        dataArrays[size] = new Float32Array(analysers[size].frequencyBinCount);
+        source.connect(analysers[size]);
+    });
 
-    analyser4096 = audioCtx.createAnalyser();
-    analyser4096.fftSize = 4096;
-    data4096 = new Float32Array(analyser4096.frequencyBinCount);
-
-    source.connect(analyser2048);
-    source.connect(analyser4096);
-
-    isRunning = true;
     document.getElementById("status").textContent = "計測中...";
     loop();
 }
 
 function getPeakFreq(data, fftSize, sampleRate) {
-    let maxVal = -Infinity;
-    let maxIdx = -1;
-    // 100Hz〜2000Hzの間を検索
+    let maxVal = -Infinity, maxIdx = -1;
     const minBin = Math.floor(100 * fftSize / sampleRate);
-    const maxBin = Math.floor(2000 * fftSize / sampleRate);
-    
+    const maxBin = Math.floor(2500 * fftSize / sampleRate);
     for (let i = minBin; i < maxBin; i++) {
-        if (data[i] > maxVal) {
-            maxVal = data[i];
-            maxIdx = i;
-        }
+        if (data[i] > maxVal) { maxVal = data[i]; maxIdx = i; }
     }
     return (maxIdx * sampleRate) / fftSize;
 }
 
 function loop() {
-    if (!isRunning) return;
     requestAnimationFrame(loop);
-
-    analyser2048.getFloatFrequencyData(data2048);
-    analyser4096.getFloatFrequencyData(data4096);
-
-    const rpm2048 = getPeakFreq(data2048, 2048, audioCtx.sampleRate) * 60;
-    const rpm4096 = getPeakFreq(data4096, 4096, audioCtx.sampleRate) * 60;
-
-    document.getElementById("rpm2048").textContent = `RPM: ${rpm2048.toFixed(0)}`;
-    document.getElementById("rpm4096").textContent = `RPM: ${rpm4096.toFixed(0)}`;
+    fftSizes.forEach(size => {
+        analysers[size].getFloatFrequencyData(dataArrays[size]);
+        const rpm = getPeakFreq(dataArrays[size], size, audioCtx.sampleRate) * 60;
+        document.getElementById(`rpm${size}`).textContent = rpm > 0 ? rpm.toFixed(0) : "--";
+    });
 }
 
 document.getElementById("startButton").addEventListener("click", () => {
