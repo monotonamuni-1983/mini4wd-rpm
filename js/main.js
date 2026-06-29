@@ -1,14 +1,17 @@
-// main.js の冒頭をこのように整理してください
+/* === グローバル変数 === */
 let audioCtx;
 let analyser;
 let dataArray;
-let measuring = false; // ここで定義
+let measuring = false;
 let isLocked = false;
-let lockedRpm = 0;      // ここで1回だけ定義
-
-// ...（グローバル変数のあたり）
-let isLocked = false; // ★これが「ロック中だよ！」と覚えるスイッチです
-let lockedRpm = 0;    // ★これが「止めた時の数字」を入れておく箱です
+let lockedRpm = 0;
+let currentRpm = 0;
+let maxRpmVal = 0;
+let minRpmVal = 0;
+let currentSpeed = 0;
+let maxSpeedVal = 0;
+let minSpeedVal = 0;
+let wavePhase = 0;
 
 // DOM要素の取得
 const waveCanvas = document.getElementById("waveCanvas");
