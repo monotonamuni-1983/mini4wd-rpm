@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<h2>Mini4WD FFT Precision Analyzer ver111000</h2>
+<h2>Mini4WD FFT Precision Analyzer ver111100</h2>
 <button id="startButton">集音開始</button>
 <div id="status">ボタンを押してください</div>
 
@@ -40,8 +40,10 @@ let audioCtx;
 const fftSizes = [2048, 4096, 8192, 16384];
 const analysers = {};
 const dataArrays = {};
+let smoothedRpm = 0;
+const SMOOTHING_FACTOR = 0.1; // 数値の更新を滑らかにする係数
 
-// --- 1. localStorage読み込み処理 ---
+// --- localStorageの初期化・読み込み ---
 const calibSlider = document.getElementById("calibSlider");
 const calibValueEl = document.getElementById("calibValue");
 
@@ -54,7 +56,7 @@ if (savedCalib) {
 calibSlider.addEventListener("input", () => {
     const val = calibSlider.value;
     calibValueEl.textContent = val;
-    localStorage.setItem("mini4wdCalib", val); // 即時保存
+    localStorage.setItem("mini4wdCalib", val);
 });
 
 async function startAudio() {
@@ -65,18 +67,16 @@ async function startAudio() {
     fftSizes.forEach(size => {
         analysers[size] = audioCtx.createAnalyser();
         analysers[size].fftSize = size;
-        
-        dataArrays[size] = new Float32Array(analysers[size].frequencyBinCount); // 修正: analyser → analysers[size]
-      
+        dataArrays[size] = new Float32Array(analysers[size].frequencyBinCount);
         source.connect(analysers[size]);
     });
+    document.getElementById("status").textContent = "計測中...";
     loop();
 }
 
-// 修正済みデータ配列取得の安定化
 function getPrecisePeak(data, fftSize, sampleRate) {
     const minBin = Math.floor(50 * fftSize / sampleRate);
-    const maxBin = Math.floor(1500 * fftSize / sampleRate);
+    const maxBin = Math.floor(2000 * fftSize / sampleRate);
     let maxVal = -Infinity, maxIdx = -1;
     for (let i = minBin; i < maxBin; i++) {
         if (data[i] > maxVal) { maxVal = data[i]; maxIdx = i; }
@@ -92,15 +92,12 @@ function loop() {
     requestAnimationFrame(loop);
     let totalRpm = 0;
     let totalWeight = 0;
-    
-    // --- 2. スライダー値の適用 ---
     const factor = parseFloat(calibSlider.value);
 
     fftSizes.forEach((size, index) => {
         analysers[size].getFloatFrequencyData(dataArrays[size]);
         const freq = getPrecisePeak(dataArrays[size], size, audioCtx.sampleRate);
         const rpm = freq * 60;
-        
         document.getElementById(`rpm${size}`).textContent = (rpm * factor).toFixed(0);
 
         const weight = Math.pow(2, index); 
@@ -108,8 +105,11 @@ function loop() {
         totalWeight += weight;
     });
 
-    const finalRpm = Math.min((totalRpm / totalWeight) * factor, 60000);
-    document.getElementById("rpmFinal").textContent = finalRpm.toFixed(1) + " RPM";
+    const targetRpm = Math.min((totalRpm / totalWeight) * factor, 60000);
+    // 移動平均フィルターで数値を安定させる
+    smoothedRpm = smoothedRpm + (targetRpm - smoothedRpm) * SMOOTHING_FACTOR;
+    
+    document.getElementById("rpmFinal").textContent = smoothedRpm.toFixed(1) + " RPM";
 }
 
 document.getElementById("startButton").addEventListener("click", () => {
