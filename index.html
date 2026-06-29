@@ -136,6 +136,41 @@ canvas {
 <h3>RPM 時系列フロー（右端0s / 左端60s）</h3>
 <canvas id="rpmFlowCanvas"></canvas>
 <script>
+// ====== グローバル変数 ======
+let audioCtx = null;
+let analyser4096 = null;
+let analyser16384 = null;
+let analyserTime = null;
+let data4096 = null;
+let data16384 = null;
+let timeData = null;
+let sampleRate = 48000;
+let isRunning = false;
+let micStream = null;
+
+let fundamentalHistory = [];
+let rpmHistory = [];
+let filteredRpm = 0;
+let maxRpm = 0;
+
+const statusEl = document.getElementById("status");
+const startButton = document.getElementById("startButton");
+const stopButton = document.getElementById("stopButton");
+const rpmDisplayEl = document.getElementById("rpmDisplay");
+const shakeHzEl = document.getElementById("shakeHz");
+const maxRpmBoxEl = document.getElementById("maxRpmBox");
+
+const rpm4096El = document.getElementById("rpm4096");
+const shake4096El = document.getElementById("shake4096");
+const rpm16384El = document.getElementById("rpm16384");
+const shake16384El = document.getElementById("shake16384");
+
+const fft4096Canvas = document.getElementById("fft4096Canvas");
+const fft16384Canvas = document.getElementById("fft16384Canvas");
+const rpmHzCanvas = document.getElementById("rpmHzCanvas");
+const rpmHzOverlay = document.getElementById("rpmHzOverlay");
+const rpmFlowCanvas = document.getElementById("rpmFlowCanvas");
+
 // ====== FFT描画（細くハッキリ） ======
 function drawFFT(canvas, ctx, dataArray) {
     const w = canvas.width;
@@ -181,7 +216,7 @@ function drawRpmHzGraph(canvas, ctx, overlayCtx, rpm, fundamentalHz) {
     ctx.shadowBlur = 3;
 
     const x = 40 + (rpm / 60000) * (w - 60);
-    const y = (h - 20) - ((fundamentalHz - 300) / (1500 - 300)) * (h - 40);
+    const y = (h - 20) - ((fundamentalHz - 150) / 2500) * (h - 40);
 
     ctx.beginPath();
     ctx.arc(x, y, 4, 0, Math.PI * 2);
@@ -269,42 +304,10 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
 
     ctx.stroke();
 }
-// ====== グローバル変数 ======
-let audioCtx = null;
-let analyser4096 = null;
-let analyser16384 = null;
-let data4096 = null;
-let data16384 = null;
-let sampleRate = 48000;
-let isRunning = false;
-let micStream = null;
 
-let fundamentalHistory = [];
-let rpmHistory = [];
-let filteredRpm = 0;
-let maxRpm = 0;
-
-const statusEl = document.getElementById("status");
-const startButton = document.getElementById("startButton");
-const stopButton = document.getElementById("stopButton");
-const rpmDisplayEl = document.getElementById("rpmDisplay");
-const shakeHzEl = document.getElementById("shakeHz");
-const maxRpmBoxEl = document.getElementById("maxRpmBox");
-
-const rpm4096El = document.getElementById("rpm4096");
-const shake4096El = document.getElementById("shake4096");
-const rpm16384El = document.getElementById("rpm16384");
-const shake16384El = document.getElementById("shake16384");
-
-const fft4096Canvas = document.getElementById("fft4096Canvas");
-const fft16384Canvas = document.getElementById("fft16384Canvas");
-const rpmHzCanvas = document.getElementById("rpmHzCanvas");
-const rpmHzOverlay = document.getElementById("rpmHzOverlay");
-const rpmFlowCanvas = document.getElementById("rpmFlowCanvas");
-
-// ====== ピーク検出 ======
+// ====== ピーク検出（80〜4000Hz） ======
 function detectPeaks(dataArray, fftSize, sampleRate) {
-    const minBin = Math.floor(100 * fftSize / sampleRate);
+    const minBin = Math.floor(80 * fftSize / sampleRate);
     const maxBin = Math.floor(4000 * fftSize / sampleRate);
     const peaks = [];
 
@@ -321,9 +324,11 @@ function detectPeaks(dataArray, fftSize, sampleRate) {
     return peaks;
 }
 
-// ====== 倍音に負けない基本周波数抽出 ======
+// ====== 倍音に負けない基本周波数抽出（ミニ四駆向け） ======
 function extractFundamentalStrong(peaks) {
-    if (peaks.length < 2) return 0;
+    // ピーク1本でも基本周波数として扱う
+    if (peaks.length === 1) return peaks[0].freq;
+    if (peaks.length < 1) return 0;
 
     const freqs = peaks.map(p => p.freq);
     const diffs = [];
@@ -331,7 +336,7 @@ function extractFundamentalStrong(peaks) {
     for (let i = 0; i < freqs.length; i++) {
         for (let j = i + 1; j < freqs.length; j++) {
             const d = Math.abs(freqs[i] - freqs[j]);
-            if (d > 50 && d < 2000) diffs.push(d);
+            if (d > 50 && d < 4000) diffs.push(d);
         }
     }
 
@@ -346,7 +351,8 @@ function extractFundamentalStrong(peaks) {
     const sorted = Object.entries(clusters).sort((a, b) => b[1] - a[1]);
     const fundamental = Number(sorted[0][0]);
 
-    if (fundamental < 300 || fundamental > 1500) return 0;
+    // ミニ四駆の基本周波数レンジ
+    if (fundamental < 150 || fundamental > 2500) return 0;
 
     return fundamental;
 }
@@ -368,6 +374,29 @@ function autoFilter(rpm, shakeHz) {
     return filteredRpm;
 }
 
+// ====== 無音判定（ミニ四駆専用） ======
+function isSilentHighPrecision() {
+    analyserTime.getByteTimeDomainData(timeData);
+
+    let sum = 0;
+    for (let i = 0; i < timeData.length; i++) {
+        sum += Math.abs(timeData[i] - 128);
+    }
+    const amp = sum / timeData.length;
+    const amplitudeSilent = amp < 4;
+
+    let energy = 0;
+    for (let i = 0; i < data4096.length; i++) {
+        energy += data4096[i];
+    }
+    const fftSilent = energy < -12000;
+
+    const peaks = detectPeaks(data4096, analyser4096.fftSize, sampleRate);
+    const peakSilent = peaks.length === 0;
+
+    return amplitudeSilent && fftSilent && peakSilent;
+}
+
 // ====== メインループ ======
 function mainLoop() {
     if (!isRunning) return;
@@ -375,6 +404,27 @@ function mainLoop() {
 
     analyser4096.getFloatFrequencyData(data4096);
     analyser16384.getFloatFrequencyData(data16384);
+    analyserTime.getByteTimeDomainData(timeData);
+
+    // 無音なら RPM 完全停止
+    if (isSilentHighPrecision()) {
+        rpmDisplayEl.textContent = "RPM: --";
+        shakeHzEl.textContent = "-- Hz";
+        maxRpmBoxEl.textContent = "MAX RPM: --";
+
+        rpm4096El.textContent = "RPM: --";
+        shake4096El.textContent = "揺れ幅：-- Hz";
+        rpm16384El.textContent = "RPM: --";
+        shake16384El.textContent = "揺れ幅：-- Hz";
+
+        drawRpmFlow(
+            rpmFlowCanvas,
+            rpmFlowCanvas.getContext("2d"),
+            6000,
+            rpmHistory
+        );
+        return;
+    }
 
     const peaks4096 = detectPeaks(data4096, analyser4096.fftSize, sampleRate);
     const peaks16384 = detectPeaks(data16384, analyser16384.fftSize, sampleRate);
@@ -451,9 +501,14 @@ async function startAudio() {
     analyser16384.fftSize = 16384;
     data16384 = new Float32Array(analyser16384.frequencyBinCount);
 
+    analyserTime = audioCtx.createAnalyser();
+    analyserTime.fftSize = 2048;
+    timeData = new Uint8Array(analyserTime.fftSize);
+
     const source = audioCtx.createMediaStreamSource(micStream);
     source.connect(analyser4096);
     source.connect(analyser16384);
+    source.connect(analyserTime);
 
     fundamentalHistory = [];
     rpmHistory = [];
@@ -490,6 +545,7 @@ stopButton.addEventListener("click", stopAudio);
 
 prepareMic();
 </script>
+
 
 </body>
 </html>
