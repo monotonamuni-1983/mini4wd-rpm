@@ -2,7 +2,6 @@
 let audioCtx;
 let analyser;
 let dataArray;
-let measuring = false; // すでに定義済みなら削除してください
 
 // ... (以下、既存の rpmNow などの取得処理が続く)
 
