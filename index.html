@@ -138,10 +138,10 @@ canvas {
 <script>
 // ====== グローバル変数 ======
 let audioCtx = null;
-let analyser2048 = null;
+let analyser1024 = null;
 let analyser16384 = null;
 let analyserTime = null;
-let data2048 = null;
+let data1024 = null;
 let data16384 = null;
 let timeData = null;
 
@@ -412,12 +412,11 @@ function autoFilter(rpm, shakeHz) {
     return filteredRpm;
 }
 
-// ====== メインループ ======
 function mainLoop() {
     if (!isRunning) return;
     requestAnimationFrame(mainLoop);
 
-    analyser2048.getFloatFrequencyData(data2048);
+    analyser1024.getFloatFrequencyData(data1024);
     analyser16384.getFloatFrequencyData(data16384);
     analyserTime.getByteTimeDomainData(timeData);
 
@@ -427,8 +426,9 @@ function mainLoop() {
         shakeHzEl.textContent = "-- Hz";
         maxRpmBoxEl.textContent = "MAX RPM: --";
 
-        rpm2048El.textContent = "RPM: --";
+        rpm2048El.textContent = "RPM: --";   // ★ 2048枠はそのまま使う
         shake2048El.textContent = "揺れ幅：-- Hz";
+
         rpm16384El.textContent = "RPM: --";
         shake16384El.textContent = "揺れ幅：-- Hz";
 
@@ -441,20 +441,24 @@ function mainLoop() {
         return;
     }
 
-    const peaks2048 = detectPeaks(data2048, analyser2048.fftSize, sampleRate);
+    // FFT1024 / FFT16384 ピーク検出
+    const peaks1024 = detectPeaks(data1024, analyser1024.fftSize, sampleRate);
     const peaks16384 = detectPeaks(data16384, analyser16384.fftSize, sampleRate);
 
-    const fundamental2048 = extractFundamentalStrong(peaks2048);
+    // 基本周波数抽出
+    const fundamental1024 = extractFundamentalStrong(peaks1024);
     const fundamental16384 = extractFundamentalStrong(peaks16384);
 
-    if (fundamental2048 === 0 && fundamental16384 === 0) return;
+    if (fundamental1024 === 0 && fundamental16384 === 0) return;
 
-    const fundamentalHz = fundamental2048 || fundamental16384;
+    const fundamentalHz = fundamental1024 || fundamental16384;
 
+    // 揺れ幅
     recordFundamental(fundamentalHz);
     const shakeHz = getFundamentalShake();
 
-    const rpm2048 = fundamental2048 * 60;
+    // RPM計算
+    const rpm1024 = fundamental1024 * 60;
     const rpm16384 = fundamental16384 * 60;
     const rpmBase = fundamentalHz * 60;
 
@@ -462,18 +466,23 @@ function mainLoop() {
 
     if (stableRpm > maxRpm) maxRpm = stableRpm;
 
+    // UI更新
     rpmDisplayEl.textContent = `RPM: ${stableRpm.toFixed(0)}`;
     shakeHzEl.textContent = `${shakeHz.toFixed(1)} Hz`;
     maxRpmBoxEl.textContent = `MAX RPM: ${maxRpm.toFixed(0)}`;
 
-    rpm2048El.textContent = `RPM: ${rpm2048 ? rpm2048.toFixed(0) : "--"}`;
+    // ★ HTMLの枠は「rpm2048」「shake2048」をそのまま使う
+    rpm2048El.textContent = `RPM: ${rpm1024 ? rpm1024.toFixed(0) : "--"}`;
     shake2048El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
 
     rpm16384El.textContent = `RPM: ${rpm16384 ? rpm16384.toFixed(0) : "--"}`;
     shake16384El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
 
-    drawFFT(fft2048Canvas, fft2048Canvas.getContext("2d"), data2048);
+    // FFT描画（1024 → 2048枠に描画）
+    drawFFT(fft2048Canvas, fft2048Canvas.getContext("2d"), data1024);
     drawFFT(fft16384Canvas, fft16384Canvas.getContext("2d"), data16384);
+
+    // RPM vs Hz グラフ
     drawRpmHzGraph(
         rpmHzCanvas,
         rpmHzCanvas.getContext("2d"),
@@ -481,6 +490,8 @@ function mainLoop() {
         stableRpm,
         fundamentalHz
     );
+
+    // RPMフロー
     drawRpmFlow(
         rpmFlowCanvas,
         rpmFlowCanvas.getContext("2d"),
@@ -488,6 +499,7 @@ function mainLoop() {
         rpmHistory
     );
 }
+
 
 // ====== マイク準備 ======
 async function prepareMic() {
@@ -508,9 +520,10 @@ async function startAudio() {
     audioCtx = new AudioContext();
     sampleRate = audioCtx.sampleRate;
 
-    analyser2048 = audioCtx.createAnalyser();
-    analyser2048.fftSize = 2048;
-    data2048 = new Float32Array(analyser2048.frequencyBinCount);
+    analyser1024 = audioCtx.createAnalyser();
+    analyser1024.fftSize = 1024;
+    data1024 = new Float32Array(analyser1024.frequencyBinCount);
+
 
     analyser16384 = audioCtx.createAnalyser();
     analyser16384.fftSize = 16384;
