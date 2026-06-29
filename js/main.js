@@ -19,8 +19,6 @@ const speedMin = document.getElementById("speedMin");
 
 const historyList = document.getElementById("historyList");
 
-let measuring = false;
-
 let currentRpm = 0;
 let maxRpmVal = 0;
 let minRpmVal = 0;
