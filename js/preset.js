@@ -1,93 +1,138 @@
-const PRESET = {
-  voltage: document.getElementById("voltageRange"),
-  gear: document.getElementById("gearRange"),
-  tire: document.getElementById("tireRange"),
+/* ============================
+   プリセット（長押し保存 / 短押し読込） 8スロット
+============================ */
+(function initPresetButtons() {
+  const grid = document.getElementById("presetGrid");
+  grid.innerHTML = ""; // 初期化
 
-  voltageLabel: document.getElementById("voltageLabel"),
-  gearLabel: document.getElementById("gearLabel"),
-  tireLabel: document.getElementById("tireLabel"),
+  for (let i = 1; i <= 8; i++) {
+    const btn = document.createElement("button");
+    btn.className = "preset-btn";
+    btn.textContent = `P${i}`;
+    btn.style.userSelect = "none";
 
-  noise: document.getElementById("noiseRange"),
-  rpmCal: document.getElementById("rpmCalRange"),
-  load: document.getElementById("loadFactorRange"),
+    let pressStart = 0;
+    let pressTimer = null;
 
-  noiseLabel: document.getElementById("noiseLabel"),
-  rpmCalLabel: document.getElementById("rpmCalLabel"),
-  loadLabel: document.getElementById("loadFactorLabel"),
-  poleLabel: document.getElementById("poleMotorLabel"),
-};
+    const startPress = (ev) => {
+      ev.preventDefault();
+      try { window.getSelection().removeAllRanges(); } catch(e) {}
+      pressStart = Date.now();
 
-const gearOptions = ["3.5:1", "3.7:1", "4.0:1", "4.2:1", "4.5:1"];
+      pressTimer = setTimeout(() => {
+        managePreset(i, true);  // 長押し → 保存
+      }, 600);
+    };
 
-function loadPresets() {
-  const sv = localStorage.getItem("preset_voltage");
-  const sg = localStorage.getItem("preset_gearIndex");
-  const st = localStorage.getItem("preset_tire");
-  const sn = localStorage.getItem("preset_noise");
-  const sr = localStorage.getItem("preset_rpmCal");
-  const sl = localStorage.getItem("preset_load");
+    const endPress = (ev) => {
+      ev.preventDefault();
+      clearTimeout(pressTimer);
 
-  if (sv !== null) PRESET.voltage.value = sv;
-  if (sg !== null) PRESET.gear.value = sg;
-  if (st !== null) PRESET.tire.value = st;
-  if (sn !== null) PRESET.noise.value = sn;
-  if (sr !== null) PRESET.rpmCal.value = sr;
-  if (sl !== null) PRESET.load.value = sl;
+      if (Date.now() - pressStart < 600) {
+        managePreset(i, false); // 短押し → 読込
+      }
+    };
 
-  updatePresetLabels();
+    btn.addEventListener("mousedown", startPress);
+    btn.addEventListener("mouseup", endPress);
+    btn.addEventListener("mouseleave", endPress);
+
+    btn.addEventListener("touchstart", startPress, { passive: false });
+    btn.addEventListener("touchend", endPress, { passive: false });
+    btn.addEventListener("touchcancel", endPress, { passive: false });
+
+    grid.appendChild(btn);
+  }
+
+  updatePresetButtonStyles();
+})();
+
+/* ============================
+   プリセット表示更新（＋表示）
+============================ */
+function updatePresetButtonStyles() {
+  for (let i = 1; i <= 8; i++) {
+    const key = `rpm_preset_${i}`;
+    const btn = document.querySelector(`#presetGrid .preset-btn:nth-child(${i})`);
+    if (!btn) continue;
+
+    const saved = localStorage.getItem(key);
+
+    if (!saved) {
+      btn.classList.add("empty");
+      btn.innerHTML = "";
+    } else {
+      btn.classList.remove("empty");
+      const config = JSON.parse(saved);
+      const label = config.label || `P${i}`;
+      btn.innerHTML = `<span class="preset-label">${label}</span>`;
+    }
+  }
 }
 
-function updatePresetLabels() {
-  PRESET.voltageLabel.textContent = parseFloat(PRESET.voltage.value).toFixed(1) + " V";
-  PRESET.gearLabel.textContent = gearOptions[parseInt(PRESET.gear.value, 10)];
-  PRESET.tireLabel.textContent = parseFloat(PRESET.tire.value).toFixed(1) + " mm";
+/* ============================
+   プリセット保存 / 読込
+============================ */
+function managePreset(slot, saveMode) {
+  const key = `rpm_preset_${slot}`;
 
-  PRESET.noiseLabel.textContent = PRESET.noise.value + " dB";
-  PRESET.rpmCalLabel.textContent = parseFloat(PRESET.rpmCal.value).toFixed(2);
-  PRESET.loadLabel.textContent = PRESET.load.value + "%";
-  PRESET.poleLabel.textContent = "2";
+  if (saveMode) {
+    const label = prompt(`P${slot} の名前を入力してください（例：Mach、HD、TT-PRO）`, "");
+
+    const config = {
+      volt: slideVolt.value,
+      gearIdx: slideGear.value,
+      tire: slideTire.value,
+      poles: inputPoles.value,
+      noise: inputNoise.value,
+      calib: inputCalib.value,
+      phase: inputPhase.value,
+      label: label || ""
+    };
+
+    localStorage.setItem(key, JSON.stringify(config));
+    updatePresetButtonStyles();
+    return;
+  }
+
+  const saved = localStorage.getItem(key);
+  if (!saved) return;
+
+  const config = JSON.parse(saved);
+  slideVolt.value = config.volt;
+  slideGear.value = config.gearIdx;
+  slideTire.value = config.tire;
+  inputPoles.value = config.poles || 1;
+  inputNoise.value = config.noise || -120;
+  inputCalib.value = config.calib || 1.00;
+  inputPhase.value = config.phase || "before";
+
+  updateSliderLabels();
+  updatePresetButtonStyles();
 }
 
-function savePresets() {
-  localStorage.setItem("preset_voltage", PRESET.voltage.value);
-  localStorage.setItem("preset_gearIndex", PRESET.gear.value);
-  localStorage.setItem("preset_tire", PRESET.tire.value);
-  localStorage.setItem("preset_noise", PRESET.noise.value);
-  localStorage.setItem("preset_rpmCal", PRESET.rpmCal.value);
-  localStorage.setItem("preset_load", PRESET.load.value);
+/* ============================
+   スライダー表示更新（UI.js と連携）
+============================ */
+function updateSliderLabels() {
+  const currentVolt = parseFloat(slideVolt.value);
+  const currentGear = GEAR_VALUES[slideGear.value];
+  const currentTire = parseFloat(slideTire.value);
+
+  document.getElementById("valVolt").textContent = currentVolt.toFixed(1) + "V";
+  document.getElementById("valGear").textContent = currentGear.toFixed(1) + ":1";
+  document.getElementById("valTire").textContent = currentTire.toFixed(1) + "mm";
+
+  document.getElementById("dispVolt").textContent = currentVolt.toFixed(1) + " V";
+  document.getElementById("dispGear").textContent = currentGear.toFixed(1) + " :1";
+  document.getElementById("dispTire").textContent = currentTire.toFixed(1) + " mm";
+  document.getElementById("dispPoles").textContent = parseInt(inputPoles.value) + " P";
+
+  const phaseText = inputPhase.value === "after" ? "慣らし後" : "慣らし前";
+  document.getElementById("valPhase").textContent = phaseText;
+
+  if (!locked) {
+    const max = currentSessionRPMs.length > 0 ? Math.max(...currentSessionRPMs) : 0;
+    generateMatrixTable(max, currentVolt);
+  }
 }
-
-PRESET.voltage.addEventListener("input", () => {
-  updatePresetLabels();
-  savePresets();
-  generateComparisonTable();
-});
-
-PRESET.gear.addEventListener("input", () => {
-  updatePresetLabels();
-  savePresets();
-  generateComparisonTable();
-});
-
-PRESET.tire.addEventListener("input", () => {
-  updatePresetLabels();
-  savePresets();
-  generateComparisonTable();
-});
-
-PRESET.noise.addEventListener("input", () => {
-  updatePresetLabels();
-  savePresets();
-});
-
-PRESET.rpmCal.addEventListener("input", () => {
-  updatePresetLabels();
-  savePresets();
-});
-
-PRESET.load.addEventListener("input", () => {
-  updatePresetLabels();
-  savePresets();
-});
-
-loadPresets();

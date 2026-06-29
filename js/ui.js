@@ -1,121 +1,71 @@
-const UI = {
-  historyBtn: document.getElementById("historyBtn"),
-  settingsBtn: document.getElementById("settingsBtn"),
+/* ============================
+   ページ切り替え
+============================ */
+function switchPage(pageName) {
+  document.querySelectorAll('.view-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
-  historyModal: document.getElementById("historyModalBackdrop"),
-  settingsModal: document.getElementById("settingsModalBackdrop"),
-
-  closeHistory: document.getElementById("closeHistory"),
-  closeSettings: document.getElementById("closeSettings"),
-
-  helpButton: document.getElementById("helpButton"),
-  helpText: document.getElementById("helpText"),
-
-  startBtn: document.getElementById("startBtn"),
-  lockBtn: document.getElementById("lockBtn"),
-  saveBtn: document.getElementById("saveBtn"),
-  resetBtn: document.getElementById("resetBtn"),
-
-  saveModal: document.getElementById("saveModalBackdrop"),
-  saveNameInput: document.getElementById("saveNameInput"),
-  motorTypeSelect: document.getElementById("motorTypeSelect"),
-  saveConfirmBtn: document.getElementById("saveConfirmBtn"),
-  saveCancelBtn: document.getElementById("saveCancelBtn"),
-
-  statusLine: document.getElementById("statusLine"),
-};
-
-/* 履歴モーダル */
-UI.historyBtn.addEventListener("click", () => {
-  UI.historyModal.classList.remove("hidden");
-});
-
-UI.closeHistory.addEventListener("click", () => {
-  UI.historyModal.classList.add("hidden");
-});
-
-/* 設定モーダル */
-UI.settingsBtn.addEventListener("click", () => {
-  UI.settingsModal.classList.remove("hidden");
-});
-
-UI.closeSettings.addEventListener("click", () => {
-  UI.settingsModal.classList.add("hidden");
-});
-
-/* ヘルプ */
-UI.helpButton.addEventListener("click", () => {
-  UI.helpText.classList.toggle("hidden");
-});
-
-/* 計測開始 / 停止 */
-/* js/ui.js 内のここを書き換える */
-UI.startBtn.addEventListener("click", async () => {
-    if (!measuring) {
-        // まだオーディオを開始していなければ初期化
-        if (!audioCtx) {
-            await startAudio();
-        }
-        measuring = true;
-        loop(); // 解析ループを開始！
-        
-        UI.startBtn.textContent = "計測停止";
-        UI.statusLine.textContent = "MEASURING — 計測中";
-    } else {
-        measuring = false; // ループが止まる
-        UI.startBtn.textContent = "計測開始";
-        UI.statusLine.textContent = "MEASURING — 計測待機中";
-    }
-});
-
-/* ロック / ロック解除の切り替え */
-UI.lockBtn.addEventListener("click", () => {
-  
-  if (UI.lockBtn.textContent === "ロック") {
-    // 【ロックする時】
-    UI.statusLine.textContent = "LOCKED — ロック中";
-    UI.lockBtn.textContent = "ロック解除";
-    isLocked = true;
-    
-    // ★ここでメモを取る！今の数字を「保存用ボックス」に入れるよ
-    lockedRpm = currentRpm; 
-  } 
-  else {
-    // 【解除する時】
-    UI.statusLine.textContent = "計測中...";
-    UI.lockBtn.textContent = "ロック";
-    isLocked = false;
+  if (pageName === 'main') {
+    document.getElementById('pageMain').classList.add('active');
+    document.getElementById('navMainBtn').classList.add('active');
+  } else if (pageName === 'history') {
+    document.getElementById('pageHistory').classList.add('active');
+    document.getElementById('navHistoryBtn').classList.add('active');
+    updateAllHistoryComponents();
+  } else if (pageName === 'karte') {
+    document.getElementById('karte').classList.add('active');
   }
+}
+
+/* ============================
+   設定モーダル
+============================ */
+const settingsModal = document.getElementById("settingsModal");
+const navSettingsBtn = document.getElementById("navSettingsBtn");
+const modalCloseBtn = document.getElementById("modalCloseBtn");
+
+navSettingsBtn.addEventListener("click", () => {
+  settingsModal.classList.add("active");
 });
 
-/* 保存モーダルを開く */
-UI.saveBtn.addEventListener("click", () => {
-  UI.saveModal.classList.remove("hidden");
+modalCloseBtn.addEventListener("click", () => {
+  settingsModal.classList.remove("active");
+  if (analyser) analyser.minDecibels = parseFloat(inputNoise.value) || -120;
+  updateSliderLabels();
 });
 
-/* 保存モーダル：キャンセル */
-UI.saveCancelBtn.addEventListener("click", () => {
-  UI.saveModal.classList.add("hidden");
+/* ============================
+   スライダーイベント
+============================ */
+[slideVolt, slideGear, slideTire].forEach(el =>
+  el.addEventListener("input", updateSliderLabels)
+);
+
+inputPhase.addEventListener("change", updateSliderLabels);
+
+/* ============================
+   リサイズ / orientation ハンドラ
+============================ */
+function handleResize() {
+  try {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth || window.innerWidth;
+    const h = canvas.clientHeight || Math.max(220, Math.round(window.innerHeight * 0.25));
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    drawSpectrumGrid();
+    renderWaveform();
+  } catch (e) {}
+}
+
+window.addEventListener('resize', handleResize);
+window.addEventListener('orientationchange', () => {
+  setTimeout(handleResize, 250);
 });
 
-/* 保存モーダル：保存する */
-UI.saveConfirmBtn.addEventListener("click", () => {
-  const name = UI.saveNameInput.value.trim();
-  const motor = UI.motorTypeSelect.value;
-
-  if (name.length === 0) {
-    alert("名前を入力してください");
-    return;
-  }
-
-  saveCurrentHistory(name, motor);
-  UI.saveModal.classList.add("hidden");
-  UI.saveNameInput.value = "";
-  UI.motorTypeSelect.value = "";
-});
-
-/* リセット */
-UI.resetBtn.addEventListener("click", () => {
-  resetMeasurement();
-  UI.statusLine.textContent = "MEASURING — 計測待機中";
-});
+/* ============================
+   初期化
+============================ */
+updateSliderLabels();
+updateAllHistoryComponents();
+requestAnimationFrame(mainLoop);
