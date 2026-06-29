@@ -152,8 +152,13 @@ async function startAudio() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
     analyser = audioCtx.createAnalyser();
-    analyser.fftSize = FFT_SIZE;
-    dataArray = new Float32Array(analyser.frequencyBinCount);
+
+// ▼ ここに挿入（FFTサイズ変更）
+analyser.fftSize = 4096;   // ← 8192でもOK
+
+const fftSize = analyser.fftSize;
+const binCount = analyser.frequencyBinCount;
+dataArray = new Float32Array(binCount);
 
     audioCtx.createMediaStreamSource(stream).connect(analyser);
 
@@ -164,6 +169,44 @@ function stopAudio() {
     running = false;
     if (audioCtx) audioCtx.suspend();
     document.getElementById("rpmFinal").textContent = "-- RPM";
+}
+
+function drawFFT() {
+  const w = waveCanvas.width;
+  const h = waveCanvas.height;
+
+  analyser.getFloatFrequencyData(dataArray);
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.beginPath();
+  ctx.strokeStyle = "#ff4fa3";
+  ctx.lineWidth = 1.5;
+
+  // ログスケール＋間引き＋ピーク強調
+  const noiseFloor = -120; // これより下は切り捨て
+  const scale = h / 60;    // dB → px の変換
+
+  // bin → x のマッピング
+  const step = binCount / w; // 1pxあたり何bin見るか
+
+  for (let x = 0; x < w; x++) {
+    const bin = Math.floor(x * step);
+    let val = dataArray[bin];
+
+    if (val < noiseFloor) val = noiseFloor;
+
+    // dBを0〜60程度に正規化して上下反転
+    const y = h - (val - noiseFloor) * scale;
+
+    if (x === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+
+  ctx.stroke();
+  requestAnimationFrame(drawFFT);
+}
+
+
 function getPrecisePeak(data, fftSize, sampleRate) {
   // ① スライダーから「見たいRPM帯域」を取得
   const minRpm = parseInt(document.getElementById("minSlider").value, 10);
@@ -216,20 +259,15 @@ function loop() {
 
   analyser.getFloatFrequencyData(dataArray);
 
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.strokeStyle = '#0f0';
-    ctx.beginPath();
-    for (let i = 0; i < canvas.width; i++) {
-        const val = (dataArray[i * 10] + 100) * 2;
-        ctx.lineTo(i, canvas.height - val);
-    }
-    ctx.stroke();
+    
 
     const peakFreq = getPrecisePeak(dataArray, analyser.fftSize, audioCtx.sampleRate);
   if (peakFreq > 0) {
     const rawRpm = peakFreq * 60;
+    
+// ▼ 補正係数をここで掛ける
+const rpmCal = 1.015;   // 例：1.01〜1.02の間で調整
+const finalRpm = rawRpm * rpmCal;
     updateAppValues(rawRpm);
   }
 }
@@ -241,6 +279,8 @@ document.getElementById("startButton").addEventListener("click", () => {
         audioCtx.resume();
         running = true;
         loop();
+requestAnimationFrame(drawFFT);   // ← ここに挿入
+
     }
 });
 
