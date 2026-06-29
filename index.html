@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Mini4WD Ultra Precision Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body { font-family: sans-serif; padding: 20px; background: #f0f2f5; text-align: center; }
+    .display-box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 10px auto; max-width: 400px; }
+    #rpmFinal { font-size: 60px; color: #007bff; font-weight: bold; margin-top: 5px; }
+    button { padding: 15px 30px; font-size: 18px; cursor: pointer; width: 100%; border-radius: 10px; border: none; margin-bottom: 10px; }
+    #startButton { background: #28a745; color: white; }
+    #stopButton { background: #dc3545; color: white; }
+    #specCanvas { width: 100%; height: 120px; background: #000; border-radius: 8px; margin: 10px 0; }
+    .control-box { font-size: 14px; margin-bottom: 10px; }
+
+    /* ▼▼ レンジスライダー ▼▼ */
+    .range-slider {
+        position: relative;
+        width: 100%;
+        height: 40px;
+        margin: 20px 0;
+    }
+
+    .range-slider input[type="range"] {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        pointer-events: none;
+        -webkit-appearance: none;
+        background: none;
+    }
+
+    /* ツマミ（thumb）1.6倍 */
+    .range-slider input[type="range"]::-webkit-slider-thumb {
+        pointer-events: auto;
+        -webkit-appearance: none;
+        width: 28px;
+        height: 28px;
+        background: #007bff;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 4px rgba(0,0,0,0.3);
+    }
+
+    .range-slider input[type="range"]::-moz-range-thumb {
+        width: 28px;
+        height: 28px;
+        background: #007bff;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    /* 選択範囲のハイライトバー */
+    .slider-track {
+        position: absolute;
+        height: 6px;
+        background: #80c0ff;
+        border-radius: 3px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+</style>
+</head>
+<body>
+
+<h2>Ultra Precision RPM Meter ver232323231</h2>
+
+<button id="startButton">計測開始</button>
+<button id="stopButton">計測停止</button>
+
+<canvas id="specCanvas"></canvas>
+
+<!-- ▼▼ レンジスライダー（リアルタイム表示付き） ▼▼ -->
+<div class="control-box">
+    計測範囲 (RPM)
+    <div class="range-slider">
+        <input type="range" id="minRpm" min="5000" max="60000" value="20000">
+        <input type="range" id="maxRpm" min="5000" max="60000" value="40000">
+        <div class="slider-track"></div>
+    </div>
+
+    <!-- リアルタイム表示 -->
+    <div style="margin-top:10px; font-size:16px;">
+        最小RPM: <span id="minRpmLabel">20000</span>  
+        ／ 最大RPM: <span id="maxRpmLabel">40000</span>
+    </div>
+</div>
+
+<div class="display-box">
+    <div>現在の回転数 (16384 FFT)</div>
+    <div id="rpmFinal">-- RPM</div>
+</div>
+
+<script>
+let audioCtx = null, analyser = null, dataArray = null;
+let running = false;
+
+const FFT_SIZE = 16384;
+const canvas = document.getElementById('specCanvas');
+const ctx = canvas.getContext('2d');
+
+/* ▼▼ レンジスライダー制御 ▼▼ */
+const minSlider = document.getElementById("minRpm");
+const maxSlider = document.getElementById("maxRpm");
+const track = document.querySelector(".slider-track");
+
+const minLabel = document.getElementById("minRpmLabel");
+const maxLabel = document.getElementById("maxRpmLabel");
+
+function updateLabels() {
+    minLabel.textContent = minSlider.value;
+    maxLabel.textContent = maxSlider.value;
+}
+
+function updateTrack() {
+    const minVal = parseInt(minSlider.value);
+    const maxVal = parseInt(maxSlider.value);
+
+    const minPercent = (minVal - minSlider.min) / (minSlider.max - minSlider.min) * 100;
+    const maxPercent = (maxVal - maxSlider.min) / (maxSlider.max - maxSlider.min) * 100;
+
+    track.style.left = minPercent + "%";
+    track.style.width = (maxPercent - minPercent) + "%";
+}
+
+minSlider.addEventListener("input", () => {
+    if (parseInt(minSlider.value) > parseInt(maxSlider.value)) {
+        minSlider.value = maxSlider.value;
+    }
+    updateTrack();
+    updateLabels();
+});
+
+maxSlider.addEventListener("input", () => {
+    if (parseInt(maxSlider.value) < parseInt(minSlider.value)) {
+        maxSlider.value = minSlider.value;
+    }
+    updateTrack();
+    updateLabels();
+});
+
+updateTrack();
+updateLabels();
+/* ▲▲ レンジスライダー制御 ▲▲ */
+
+async function startAudio() {
+    if (running) return;
+    running = true;
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    analyser = audioCtx.createAnalyser();
+
+// ▼ ここに挿入（FFTサイズ変更）
+analyser.fftSize = 4096;   // ← 8192でもOK
+
+const fftSize = analyser.fftSize;
+const binCount = analyser.frequencyBinCount;
+dataArray = new Float32Array(binCount);
+
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+
+    loop();
+}
+
+function stopAudio() {
+    running = false;
+    if (audioCtx) audioCtx.suspend();
+    document.getElementById("rpmFinal").textContent = "-- RPM";
+}
+
+function drawFFT() {
+  const w = waveCanvas.width;
+  const h = waveCanvas.height;
+
+  analyser.getFloatFrequencyData(dataArray);
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.beginPath();
+  ctx.strokeStyle = "#ff4fa3";
+  ctx.lineWidth = 1.5;
+
+  // ログスケール＋間引き＋ピーク強調
+  const noiseFloor = -120; // これより下は切り捨て
+  const scale = h / 60;    // dB → px の変換
+
+  // bin → x のマッピング
+  const step = binCount / w; // 1pxあたり何bin見るか
+
+  for (let x = 0; x < w; x++) {
+    const bin = Math.floor(x * step);
+    let val = dataArray[bin];
+
+    if (val < noiseFloor) val = noiseFloor;
+
+    // dBを0〜60程度に正規化して上下反転
+    const y = h - (val - noiseFloor) * scale;
+
+    if (x === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+
+  ctx.stroke();
+  requestAnimationFrame(drawFFT);
+}
+
+
+function getPrecisePeak(data, fftSize, sampleRate) {
+  // ① スライダーから「見たいRPM帯域」を取得
+  const minRpm = parseInt(document.getElementById("minSlider").value, 10);
+  const maxRpm = parseInt(document.getElementById("maxSlider").value, 10);
+
+  // ② RPM → 周波数(Hz) に変換
+  const minFreq = minRpm / 60;
+  const maxFreq = maxRpm / 60;
+
+  // ③ 周波数 → FFT bin に変換
+  const minBin = Math.floor(minFreq * fftSize / sampleRate);
+  const maxBin = Math.floor(maxFreq * fftSize / sampleRate);
+
+  // 安全ガード
+  const len = data.length;
+  const from = Math.max(1, Math.min(minBin, len - 2));
+  const to   = Math.max(2, Math.min(maxBin, len - 1));
+
+  // ④ 指定帯域内で最大値を探す
+  let maxVal = -Infinity;
+  let maxIdx = -1;
+  for (let i = from; i <= to; i++) {
+    if (data[i] > maxVal) {
+      maxVal = data[i];
+      maxIdx = i;
+    }
+  }
+
+  if (maxIdx <= from || maxIdx >= to) return 0;
+
+  // ⑤ 3点補間（Quadratic Interpolation）
+  const y1 = data[maxIdx - 1];
+  const y2 = data[maxIdx];
+  const y3 = data[maxIdx + 1];
+
+  const denom = (y1 - 2 * y2 + y3);
+  if (denom === 0) return (maxIdx * sampleRate) / fftSize;
+
+  const offset = (y1 - y3) / (2 * denom);
+  const peakBin = maxIdx + offset;
+
+  // ⑥ bin → 周波数(Hz) に戻す
+  const peakFreq = (peakBin * sampleRate) / fftSize;
+  return peakFreq;
+}
+
+function loop() {
+  if (!measuring) return;
+  requestAnimationFrame(loop);
+
+  analyser.getFloatFrequencyData(dataArray);
+
+    
+
+    const peakFreq = getPrecisePeak(dataArray, analyser.fftSize, audioCtx.sampleRate);
+  if (peakFreq > 0) {
+    const rawRpm = peakFreq * 60;
+    
+// ▼ 補正係数をここで掛ける
+const rpmCal = 1.015;   // 例：1.01〜1.02の間で調整
+const finalRpm = rawRpm * rpmCal;
+    updateAppValues(rawRpm);
+  }
+}
+
+document.getElementById("startButton").addEventListener("click", () => {
+    if (!audioCtx || audioCtx.state === "suspended") {
+        startAudio();
+    } else {
+        audioCtx.resume();
+        running = true;
+        loop();
+requestAnimationFrame(drawFFT);   // ← ここに挿入
+
+    }
+});
+
+document.getElementById("stopButton").addEventListener("click", stopAudio);
+</script>
+</body>
+</html>
