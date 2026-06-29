@@ -176,13 +176,12 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .modal {
-  width: 100%;
+  width: 95%; /* 100%ではなく少し余裕を持たせる */
   max-width: 480px;
   background: #f5f7fc;
   border-radius: 18px 18px 0 0;
-  padding: 18px;
-  position: relative;
-  box-sizing: border-box; /* はみ出し防止 */
+  padding: 16px;
+  box-sizing: border-box; /* ★ここが重要：パディングを含めて幅を計算 */
 }
 
 .modal-title {
@@ -197,9 +196,9 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* --- 履歴セクション --- */
 .history-wrapper {
+  width: 100%;
   overflow-x: auto;
-  min-width: 100%;
-  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 .history-filter,
@@ -212,34 +211,25 @@ input[type="range"]::-webkit-slider-thumb {
 .history-filter {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
   justify-content: center;
+  width: 100%;
 }
 
 .history-filter select {
-  flex: 1 1 30%;         /* 基本的に30%の幅（3つ並ぶ） */
-  min-width: 100px;      /* 狭くなりすぎないように制限 */
-  max-width: 100px;      /* ★もし全部同じ幅にしたいなら、ここを統一します */
-  padding: 10px;
-  border-radius: 10px;
+  flex: 1 1 45%; /* 2つ並べるのがスマホでは限界 */
+  min-width: 120px;
+  padding: 8px;
+  border-radius: 8px;
   border: 1px solid #c7d6ff;
-  background: #ffffff;
-  font-size: 0.9rem;
-  box-sizing: border-box; /* ★はみ出し防止 */
+  box-sizing: border-box; /* ★これがないと飛び出す */
+  font-size: 0.85rem;
 }
 
-.history-header-fixed {
-  position: sticky;
-  top: 0;
-  background: #e6ecff;
-  padding: 8px;
-  font-size: 0.9rem;
-  font-weight: 700;
+.history-header-fixed, .history-row {
   display: grid;
-  grid-template-columns: 90px 70px 80px 60px 70px 70px 60px 80px;
-  border-bottom: 1px solid #c7d6ff;
-  z-index: 10;
+  grid-template-columns: 80px 60px 70px 50px 60px 60px 50px 70px; /* 少しずつ幅を縮めました */
+  width: 600px; /* ここを固定幅にすることでwrapper内で収まる */
 }
 
 .history-list {
