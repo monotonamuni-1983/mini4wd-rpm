@@ -430,15 +430,15 @@ function mainLoop() {
 
     if (stableRpm > maxRpm) maxRpm = stableRpm;
 
-    rpmDisplayEl.textContent = `RPM: ${stableRpm.toFixed(0)}`;
-    shakeHzEl.textContent = `${shakeHz.toFixed(1)} Hz`;
-    maxRpmBoxEl.textContent = `MAX RPM: ${maxRpm.toFixed(0)}`;
+    rpmDisplayEl.textContent = "RPM: " + stableRpm.toFixed(0);
+    shakeHzEl.textContent = shakeHz.toFixed(1) + " Hz";
+    maxRpmBoxEl.textContent = "MAX RPM: " + maxRpm.toFixed(0);
 
-    rpm4096El.textContent = `RPM: ${fundamental4096 ? (fundamental4096 * 60).toFixed(0) : "--"}`;
-    shake4096El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
+    rpm4096El.textContent = "RPM: " + (fundamental4096 ? (fundamental4096 * 60).toFixed(0) : "--");
+    shake4096El.textContent = "揺れ幅：" + shakeHz.toFixed(1) + " Hz";
 
-    rpm16384El.textContent = `RPM: ${fundamental16384 ? (fundamental16384 * 60).toFixed(0) : "--"}`;
-    shake16384El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
+    rpm16384El.textContent = "RPM: " + (fundamental16384 ? (fundamental16384 * 60).toFixed(0) : "--");
+    shake16384El.textContent = "揺れ幅：" + shakeHz.toFixed(1) + " Hz";
 
     drawFFT(fft4096Canvas, fft4096Canvas.getContext("2d"), data4096);
     drawFFT(fft16384Canvas, fft16384Canvas.getContext("2d"), data16384);
@@ -450,11 +450,11 @@ function mainLoop() {
         fundamentalHz
     );
     drawRpmFlow(
-    rpmFlowCanvas,
-    rpmFlowCanvas.getContext("2d"),
-    stableRpm,
-    rpmHistory
-);
+        rpmFlowCanvas,
+        rpmFlowCanvas.getContext("2d"),
+        stableRpm,
+        rpmHistory
+    );
 }
 
 /* ============================
@@ -464,15 +464,13 @@ async function prepareMic() {
     try {
         statusEl.textContent = "マイク許可をリクエスト中…";
 
-        // マイクストリームを取得
+        // Safari / iOS でも壊れないように毎回新規取得
         micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        // 許可成功
         statusEl.textContent = "マイク許可OK。集音開始ボタンを押してください。";
         startButton.disabled = false;
 
     } catch (e) {
-        // 許可拒否
         statusEl.textContent = "マイク許可が拒否されました。設定から許可してください。";
     }
 }
@@ -482,37 +480,39 @@ async function prepareMic() {
 ============================ */
 async function startAudio() {
 
-    // micStream が null の場合は再取得（安全）
-    if (!micStream) {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Safari の AudioContext ロック解除
+    if (audioCtx && audioCtx.state === "suspended") {
+        await audioCtx.resume();
     }
 
-    // AudioContext を生成
+    // 毎回新しいストリームを取得（Safari対策）
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
     audioCtx = new AudioContext();
     sampleRate = audioCtx.sampleRate;
 
-    // FFT4096
     analyser4096 = audioCtx.createAnalyser();
     analyser4096.fftSize = 4096;
     data4096 = new Float32Array(analyser4096.frequencyBinCount);
 
-    // FFT16384
     analyser16384 = audioCtx.createAnalyser();
     analyser16384.fftSize = 16384;
     data16384 = new Float32Array(analyser16384.frequencyBinCount);
 
-    // time-domain（無音判定用）
     analyserTime = audioCtx.createAnalyser();
     analyserTime.fftSize = 2048;
     timeData = new Uint8Array(analyserTime.fftSize);
 
-    // マイク入力を接続
     const source = audioCtx.createMediaStreamSource(micStream);
-    source.connect(analyser4096);
-    source.connect(analyser16384);
-    source.connect(analyserTime);
 
-    // 状態初期化
+    // Safariで複数analyser接続が壊れる問題の回避
+    const gain = audioCtx.createGain();
+    source.connect(gain);
+
+    gain.connect(analyser4096);
+    gain.connect(analyser16384);
+    gain.connect(analyserTime);
+
     fundamentalHistory = [];
     rpmHistory = [];
     filteredRpm = 0;
@@ -536,13 +536,11 @@ function stopAudio() {
     startButton.disabled = false;
     statusEl.textContent = "停止中…";
 
-    // マイク停止
     if (micStream) {
         micStream.getTracks().forEach(t => t.stop());
         micStream = null;
     }
 
-    // AudioContext を安全に破棄
     if (audioCtx) {
         try { audioCtx.close(); } catch(e) {}
         audioCtx = null;
