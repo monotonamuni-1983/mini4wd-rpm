@@ -331,13 +331,11 @@ function isSilentHighPrecision() {
 
     // FFTエネルギー（30〜80dBにクリップしているので条件を変更）
     let peakCount = 0;
-    for (let i = 0; i < data2048.length; i++) {
-        if (data2048[i] > 35) peakCount++;   // 35dB以上の成分があれば音あり
-    }
-    const fftSilent = peakCount < 3;         // 3本未満なら無音
+    for (let i = 0; i < data1024.length; i++) {
+    if (data1024[i] > 35) peakCount++;
+}
+const peaks = detectPeaks(data1024, analyser1024.fftSize, sampleRate);
 
-    // ピーク数（1本でも音あり）
-    const peaks = detectPeaks(data2048, analyser2048.fftSize, sampleRate);
     const peakSilent = peaks.length === 0;
 
     return amplitudeSilent && fftSilent && peakSilent;
@@ -535,9 +533,10 @@ async function startAudio() {
     timeData = new Uint8Array(analyserTime.fftSize);
 
     const source = audioCtx.createMediaStreamSource(micStream);
-    source.connect(analyser2048);
+    source.connect(analyser1024);
     source.connect(analyser16384);
     source.connect(analyserTime);
+
 
     fundamentalHistory = [];
     rpmHistory = [];
