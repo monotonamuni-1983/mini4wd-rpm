@@ -144,7 +144,9 @@ let analyserTime = null;
 let data2048 = null;
 let data16384 = null;
 let timeData = null;
-let sampleRate = 400;
+
+let sampleRate = 48000;  // ★ 初期値はダミー。実際は startAudio() で上書きされる。
+
 let isRunning = false;
 let micStream = null;
 
@@ -152,6 +154,7 @@ let fundamentalHistory = [];
 let rpmHistory = [];
 let filteredRpm = 0;
 let maxRpm = 0;
+
 
 const statusEl = document.getElementById("status");
 const startButton = document.getElementById("startButton");
