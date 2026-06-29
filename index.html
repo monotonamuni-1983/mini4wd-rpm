@@ -2,29 +2,29 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Mini4WD FFT Comparison (2048 - 16384)</title>
+<title>Mini4WD FFT Precision Analyzer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
     body { font-family: sans-serif; padding: 10px; background: #f9f9f9; }
     .fft-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
     .fft-box { background: white; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    canvas { width: 100%; height: 100px; background: #eee; margin-top: 5px; }
     .rpm-text { font-weight: bold; font-size: 18px; color: #ff008c; }
     button { padding: 15px 30px; font-size: 18px; cursor: pointer; width: 100%; margin-bottom: 10px; }
 </style>
 </head>
 <body>
 
-<h2>Mini4WD FFT 比較 ver100</h2>
+<h2>Mini4WD FFT Precision Analyzer ver1000</h2>
 <button id="startButton">集音開始</button>
 <div id="status">ボタンを押してください</div>
 
 <div class="fft-container">
-    <div class="fft-box">FFT 2048<div id="rpm2048" class="rpm-text">--</div><canvas id="canvas2048"></canvas></div>
-    <div class="fft-box">FFT 4096<div id="rpm4096" class="rpm-text">--</div><canvas id="canvas4096"></canvas></div>
-    <div class="fft-box">FFT 8192<div id="rpm8192" class="rpm-text">--</div><canvas id="canvas8192"></canvas></div>
-    <div class="fft-box">FFT 16384<div id="rpm16384" class="rpm-text">--</div><canvas id="canvas16384"></canvas></div>
+    <div class="fft-box">FFT 2048<div id="rpm2048" class="rpm-text">--</div></div>
+    <div class="fft-box">FFT 4096<div id="rpm4096" class="rpm-text">--</div></div>
+    <div class="fft-box">FFT 8192<div id="rpm8192" class="rpm-text">--</div></div>
+    <div class="fft-box">FFT 16384<div id="rpm16384" class="rpm-text">--</div></div>
 </div>
+<div class="fft-box" style="margin-top:20px;">★補正済み高精度 RPM<div id="rpmFinal" style="font-size:32px; color:blue; font-weight:bold;">--</div></div>
 
 <script>
 let audioCtx;
@@ -43,28 +43,42 @@ async function startAudio() {
         dataArrays[size] = new Float32Array(analysers[size].frequencyBinCount);
         source.connect(analysers[size]);
     });
-
-    document.getElementById("status").textContent = "計測中...";
     loop();
 }
 
-function getPeakFreq(data, fftSize, sampleRate) {
+// 放物線補間を用いた高精度ピーク検出
+function getPrecisePeak(data, fftSize, sampleRate) {
     let maxVal = -Infinity, maxIdx = -1;
-    const minBin = Math.floor(100 * fftSize / sampleRate);
-    const maxBin = Math.floor(2500 * fftSize / sampleRate);
-    for (let i = minBin; i < maxBin; i++) {
+    for (let i = 1; i < data.length - 1; i++) {
         if (data[i] > maxVal) { maxVal = data[i]; maxIdx = i; }
     }
-    return (maxIdx * sampleRate) / fftSize;
+    
+    // 補間処理: y = ax^2 + bx + c の頂点を求める
+    const y1 = data[maxIdx - 1], y2 = data[maxIdx], y3 = data[maxIdx + 1];
+    const offset = (y1 - y3) / (2 * (y1 - 2 * y2 + y3)); // 頂点のズレ（-0.5〜0.5）
+    
+    return ((maxIdx + offset) * sampleRate) / fftSize;
 }
 
 function loop() {
     requestAnimationFrame(loop);
-    fftSizes.forEach(size => {
+    let totalRpm = 0;
+    let totalWeight = 0;
+
+    fftSizes.forEach((size, index) => {
         analysers[size].getFloatFrequencyData(dataArrays[size]);
-        const rpm = getPeakFreq(dataArrays[size], size, audioCtx.sampleRate) * 60;
-        document.getElementById(`rpm${size}`).textContent = rpm > 0 ? rpm.toFixed(0) : "--";
+        const freq = getPrecisePeak(dataArrays[size], size, audioCtx.sampleRate);
+        const rpm = freq * 60;
+        
+        document.getElementById(`rpm${size}`).textContent = rpm.toFixed(0);
+
+        // 高い解像度（大きいFFTサイズ）ほど重みを強くする（16384を基準）
+        const weight = Math.pow(2, index); 
+        totalRpm += rpm * weight;
+        totalWeight += weight;
     });
+
+    document.getElementById("rpmFinal").textContent = (totalRpm / totalWeight).toFixed(1) + " RPM";
 }
 
 document.getElementById("startButton").addEventListener("click", () => {
