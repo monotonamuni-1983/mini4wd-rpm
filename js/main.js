@@ -1,9 +1,10 @@
-/* === グローバル変数（main.js の一番上に書いてね） === */
+// main.js の冒頭をこのように整理してください
 let audioCtx;
 let analyser;
 let dataArray;
-let measuring = false;
-let lockedRpm = 0; // ★ロックした時の数字を覚えておく箱
+let measuring = false; // ここで定義
+let isLocked = false;
+let lockedRpm = 0;      // ここで1回だけ定義
 
 // ...（グローバル変数のあたり）
 let isLocked = false; // ★これが「ロック中だよ！」と覚えるスイッチです
