@@ -16,8 +16,6 @@ const fftSize = 8192;
 let currentSessionRPMs = [];
 
 let historyChart = null;
-let radarChart = null;
-let beforeAfterChart = null;
 let lockedData = null;
 
 /* ============================
@@ -416,6 +414,7 @@ function renderHistoryRows(data) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${item.date}</td>
+      <td style="font-weight:bold;">
       <td style="font-weight:bold;">${item.name}</td>
       <td style="color:#ef4444; font-weight:bold;">${item.maxRpm} RPM</td>
       <td>${item.avgRpm} RPM</td>
@@ -424,7 +423,6 @@ function renderHistoryRows(data) {
       <td>${item.tire} mm</td>
       <td>${phaseLabel}</td>
       <td>
-        <button class="btn-sm" onclick="openKarte('${item.name.replace(/'/g, "\\'")}')">カルテ</button>
         <button class="btn-sm btn-danger" onclick="deleteRecord(${item.id})">削除</button>
       </td>
     `;
@@ -470,93 +468,6 @@ function drawHistoryChart(data) {
       scales: {
         x: { ticks: { maxRotation: 45, minRotation: 0 } },
         y: { beginAtZero: false }
-      }
-    }
-  });
-}
-
-/* ============================
-   カルテ・チャート描画
-============================ */
-function drawKarteRadar(data) {
-  const rctx = document.getElementById("karteRadar").getContext("2d");
-  const norm = (v, max) => Math.min(100, Math.round(v / max * 100));
-
-  const radarData = {
-    labels: ["MAX RPM", "AVG RPM", "安定性", "効率", "最高時速"],
-    datasets: [{
-      label: "Motor Performance",
-      data: [
-        norm(data.maxRPM || 0, 40000),
-        norm(data.avgRPM || 0, 35000),
-        data.avgStab || 0,
-        data.avgEff || 0,
-        norm(data.maxSpeed || 0, 60)
-      ],
-      backgroundColor: "rgba(59,130,246,0.3)",
-      borderColor: "#3b82f6",
-      borderWidth: 2,
-      pointBackgroundColor: "#1d4ed8"
-    }]
-  };
-
-  if (radarChart) radarChart.destroy();
-
-  radarChart = new Chart(rctx, {
-    type: "radar",
-    data: radarData,
-    options: {
-      scales: {
-        r: {
-          suggestedMin: 0,
-          suggestedMax: 100,
-          ticks: { display: false }
-        }
-      }
-    }
-  });
-}
-
-function drawBeforeAfterChart(d) {
-  const ctxBA = document.getElementById("karteBeforeAfter").getContext("2d");
-
-  const labels = ["AVG RPM", "安定性指数", "効率指数"];
-  const beforeData = [
-    d.beforeAvgRPM || 0,
-    d.beforeAvgStab || 0,
-    d.beforeAvgEff || 0
-  ];
-  const afterData = [
-    d.afterAvgRPM || 0,
-    d.afterAvgStab || 0,
-    d.afterAvgEff || 0
-  ];
-
-  if (beforeAfterChart) beforeAfterChart.destroy();
-
-  beforeAfterChart = new Chart(ctxBA, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Before (慣らし前)",
-          data: beforeData,
-          backgroundColor: "rgba(59,130,246,0.5)"
-        },
-        {
-          label: "After (慣らし後)",
-          data: afterData,
-          backgroundColor: "rgba(239,68,68,0.5)"
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { stacked: false },
-        y: { beginAtZero: true }
       }
     }
   });
@@ -743,73 +654,6 @@ resetBtn.addEventListener("click", () => {
   lockedData = null;
   lockBtn.textContent = "🔒";
 });
-
-/* ============================
-   カルテ表示
-============================ */
-function openKarte(name) {
-  const history = getHistorySafe().filter(h => h.name === name);
-  if (history.length === 0) return;
-
-  document.querySelectorAll('.view-page').forEach(p => p.classList.remove('active'));
-  document.getElementById('karte').classList.add('active');
-
-  document.getElementById("karteTitle").textContent = `モーター名：${name}`;
-
-  const maxRPM = Math.max(...history.map(h => h.maxRpm));
-  const avgRPM = Math.round(history.reduce((s, h) => s + h.avgRpm, 0) / history.length);
-  const maxSpeed = Math.max(...history.map(h => h.maxSpeed));
-  const avgStab = history.reduce((s, h) => s + (h.stabilityIndex || 0), 0) / history.length;
-  const avgEff = history.reduce((s, h) => s + (h.efficiencyIndex || 0), 0) / history.length;
-
-  const voltList = [...new Set(history.map(h => h.volt))].join(", ");
-
-  const beforeRuns = history.filter(h => h.breakInPhase === "before");
-  const afterRuns = history.filter(h => h.breakInPhase === "after");
-  const beforeCount = beforeRuns.length;
-  const afterCount = afterRuns.length;
-
-  let beforeAvgRPM = null, afterAvgRPM = null;
-  let beforeAvgStab = null, afterAvgStab = null;
-  let beforeAvgEff = null, afterAvgEff = null;
-  let growthAvgRPM = null;
-
-  if (beforeRuns.length > 0) {
-    beforeAvgRPM = beforeRuns.reduce((s, h) => s + h.avgRpm, 0) / beforeRuns.length;
-    beforeAvgStab = beforeRuns.reduce((s, h) => s + (h.stabilityIndex || 0), 0) / beforeRuns.length;
-    beforeAvgEff = beforeRuns.reduce((s, h) => s + (h.efficiencyIndex || 0), 0) / beforeRuns.length;
-  }
-  if (afterRuns.length > 0) {
-    afterAvgRPM = afterRuns.reduce((s, h) => s + h.avgRpm, 0) / afterRuns.length;
-    afterAvgStab = afterRuns.reduce((s, h) => s + (h.stabilityIndex || 0), 0) / afterRuns.length;
-    afterAvgEff = afterRuns.reduce((s, h) => s + (h.efficiencyIndex || 0), 0) / afterRuns.length;
-  }
-  if (beforeAvgRPM != null && afterAvgRPM != null) {
-    growthAvgRPM = ((afterAvgRPM - beforeAvgRPM) / beforeAvgRPM) * 100;
-  }
-
-  document.getElementById("karteSummary").innerHTML = `
-    <div class="metric-box">最高RPM <span>${maxRPM} RPM</span></div>
-    <div class="metric-box">平均RPM <span>${avgRPM} RPM</span></div>
-    <div class="metric-box">最高時速 <span>${maxSpeed.toFixed(1)} km/h</span></div>
-    <div class="metric-box">安定性指数 <span>${avgStab.toFixed(1)}</span></div>
-    <div class="metric-box">効率指数 <span>${avgEff.toFixed(1)}</span></div>
-    <div class="metric-box">使用電圧 <span>${voltList}</span></div>
-    <div class="metric-box">慣らし前/後 <span>${beforeCount} / ${afterCount}</span></div>
-    <div class="metric-box">計測回数 <span>${history.length}</span></div>
-    <div class="metric-box">慣らし後伸び率(AVG) <span>${growthAvgRPM != null ? growthAvgRPM.toFixed(1) + "%" : "-"}</span></div>
-  `;
-
-  drawKarteRadar({ maxRPM, avgRPM, avgStab, avgEff, maxSpeed });
-  drawBeforeAfterChart({
-    beforeAvgRPM,
-    afterAvgRPM,
-    beforeAvgStab,
-    afterAvgStab,
-    beforeAvgEff,
-    afterAvgEff
-  });
-}
 
 /* ============================
    履歴全体更新
