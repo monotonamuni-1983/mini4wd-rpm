@@ -71,6 +71,27 @@ canvas {
     font-size: 20px;
     font-weight: bold;
 }
+
+/* 横並びレイアウト */
+.fft-row {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+}
+.fft-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 各FFTの情報枠 */
+.fft-info {
+    margin: 5px 0 10px 0;
+    padding: 6px 10px;
+    background: #f3f3f3;
+    border-radius: 6px;
+    font-size: 18px;
+}
 </style>
 </head>
 
@@ -86,11 +107,25 @@ canvas {
 <div>揺れ幅：<span id="shakeHz">-- Hz</span></div>
 <div id="maxRpmBox">MAX RPM: --</div>
 
-<h3>FFT4096 スペクトラム</h3>
-<canvas id="fft4096Canvas"></canvas>
+<h3>FFT4096 / FFT16384 スペクトラム比較</h3>
 
-<h3>FFT16384 スペクトラム</h3>
-<canvas id="fft16384Canvas"></canvas>
+<div class="fft-row">
+  <div class="fft-box">
+    <div class="fft-info">
+      <div id="rpm4096">RPM: --</div>
+      <div id="shake4096">揺れ幅：-- Hz</div>
+    </div>
+    <canvas id="fft4096Canvas"></canvas>
+  </div>
+
+  <div class="fft-box">
+    <div class="fft-info">
+      <div id="rpm16384">RPM: --</div>
+      <div id="shake16384">揺れ幅：-- Hz</div>
+    </div>
+    <canvas id="fft16384Canvas"></canvas>
+  </div>
+</div>
 
 <h3>RPM vs Hz グラフ</h3>
 <div class="rpmhz-wrapper">
@@ -101,23 +136,29 @@ canvas {
 <h3>RPM 時系列フロー（右端0s / 左端60s）</h3>
 <canvas id="rpmFlowCanvas"></canvas>
 <script>
-// ====== FFT描画 ======
+// ====== FFT描画（細くハッキリ） ======
 function drawFFT(canvas, ctx, dataArray) {
     const w = canvas.width;
     const h = canvas.height;
 
     ctx.clearRect(0, 0, w, h);
+
+    ctx.strokeStyle = "#ff008c";              // 濃いネオンピンク
+    ctx.lineWidth = 1 * devicePixelRatio;     // 高精細ライン
+    ctx.shadowColor = "rgba(255,0,140,0.4)";
+    ctx.shadowBlur = 2;
+
     ctx.beginPath();
-    ctx.strokeStyle = "#ff2e9f";
-    ctx.lineWidth = 2;
 
     for (let i = 0; i < dataArray.length; i++) {
         const x = (i / dataArray.length) * w;
         const v = dataArray[i];
         const y = h - ((v + 140) / 80) * h;
+
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
+
     ctx.stroke();
 }
 
@@ -135,7 +176,10 @@ function drawRpmHzGraph(canvas, ctx, overlayCtx, rpm, fundamentalHz) {
     ctx.lineTo(w - 10, h - 20);
     ctx.stroke();
 
-    ctx.fillStyle = "#ff2e9f";
+    ctx.fillStyle = "#ff008c";
+    ctx.shadowColor = "rgba(255,0,140,0.4)";
+    ctx.shadowBlur = 3;
+
     const x = 40 + (rpm / 50000) * (w - 60);
     const y = (h - 20) - ((fundamentalHz - 100) / 1700) * (h - 40);
 
@@ -189,7 +233,10 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
     }
 
     ctx.strokeStyle = "#0077ff";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1 * devicePixelRatio;
+    ctx.shadowColor = "rgba(0,120,255,0.35)";
+    ctx.shadowBlur = 2;
+
     ctx.beginPath();
 
     for (let i = 0; i < rpmHistory.length; i++) {
@@ -222,6 +269,11 @@ const stopButton = document.getElementById("stopButton");
 const rpmDisplayEl = document.getElementById("rpmDisplay");
 const shakeHzEl = document.getElementById("shakeHz");
 const maxRpmBoxEl = document.getElementById("maxRpmBox");
+
+const rpm4096El = document.getElementById("rpm4096");
+const shake4096El = document.getElementById("shake4096");
+const rpm16384El = document.getElementById("rpm16384");
+const shake16384El = document.getElementById("shake16384");
 
 const fft4096Canvas = document.getElementById("fft4096Canvas");
 const fft16384Canvas = document.getElementById("fft16384Canvas");
@@ -308,6 +360,12 @@ function mainLoop() {
     rpmDisplayEl.textContent = `RPM: ${stableRpm.toFixed(0)}`;
     shakeHzEl.textContent = `${shakeHz.toFixed(1)} Hz`;
     maxRpmBoxEl.textContent = `MAX RPM: ${maxRpm.toFixed(0)}`;
+
+    rpm4096El.textContent = `RPM: ${stableRpm.toFixed(0)}`;
+    shake4096El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
+
+    rpm16384El.textContent = `RPM: ${stableRpm.toFixed(0)}`;
+    shake16384El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
 
     drawFFT(fft4096Canvas, fft4096Canvas.getContext("2d"), data4096);
     drawFFT(fft16384Canvas, fft16384Canvas.getContext("2d"), data16384);
