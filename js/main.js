@@ -104,13 +104,172 @@ function updateAppValues(rawRpm) {
 }
 
 /* 比較表・保存・履歴関数（既存のコードをそのまま配置） */
-function generateComparisonTable() { /* ...（中身省略）... */ }
-function resetMeasurement() { measuring = false; /* ...（中身省略）... */ }
-function saveCurrentHistory(name, motorType) { /* ...（中身省略）... */ }
-function buildFilterOptions() { /* ...（中身省略）... */ }
-function fillSelect(select, values, label) { /* ...（中身省略）... */ }
-function applyHistoryFilter(list) { /* ...（中身省略）... */ }
-function renderHistory() { /* ...（中身省略）... */ }
+/* 比較表（0.1V刻み） */
+function generateComparisonTable() {
+  const comparisonBody = document.getElementById("comparisonBody");
+  comparisonBody.innerHTML = "";
+
+  const tire = parseFloat(document.getElementById("tireRange").value);
+  const currentVoltage = parseFloat(document.getElementById("voltageRange").value).toFixed(1);
+
+  const baseRpmAt28 = 15000;
+
+  for (let v = 2.2; v <= 3.4; v += 0.1) {
+    const voltage = v.toFixed(1);
+    const tr = document.createElement("tr");
+
+    if (voltage === currentVoltage) tr.classList.add("highlight-row");
+
+    const rpm = Math.round(baseRpmAt28 * (v / 2.8));
+
+    const tdV = document.createElement("td");
+    tdV.textContent = voltage + " V";
+    tr.appendChild(tdV);
+
+    const tdR = document.createElement("td");
+    tdR.textContent = rpm;
+    tr.appendChild(tdR);
+
+    ["3.5:1", "3.7:1", "4.0:1"].forEach(g => {
+      const gearRatio = parseFloat(g.split(":")[0]);
+      const wheelRpm = rpm / gearRatio;
+      const wheelRps = wheelRpm / 60;
+      const circumference = Math.PI * (tire / 1000);
+      const speed = wheelRps * circumference * 3.6;
+
+      const td = document.createElement("td");
+      td.textContent = speed.toFixed(2);
+
+      const currentGear = gearOptions[parseInt(document.getElementById("gearRange").value)];
+      if (g === currentGear) td.classList.add("highlight-col");
+
+      tr.appendChild(td);
+    });
+
+    comparisonBody.appendChild(tr);
+  }
+}
+
+/* リセット */
+function resetMeasurement() {
+  measuring = false;
+
+  currentRpm = 0;
+  maxRpmVal = 0;
+  minRpmVal = 0;
+  currentSpeed = 0;
+  maxSpeedVal = 0;
+  minSpeedVal = 0;
+
+  rpmNow.textContent = "0";
+  rpmMax.textContent = "0";
+  rpmMin.textContent = "0";
+
+  speedNow.textContent = "0.00 km/h";
+  speedTop.textContent = "0.00 km/h";
+  speedMin.textContent = "0.00 km/h";
+
+  document.getElementById("startBtn").textContent = "計測開始";
+}
+
+/* 保存 */
+function saveCurrentHistory(name, motorType) {
+  const voltage = parseFloat(document.getElementById("voltageRange").value).toFixed(1);
+  const gearIndex = parseInt(document.getElementById("gearRange").value, 10);
+  const gearStr = gearOptions[gearIndex];
+  const tire = parseFloat(document.getElementById("tireRange").value).toFixed(1);
+
+  const entry = {
+    date: new Date().toLocaleString(),
+    name,
+    motor: motorType,
+    voltage,
+    gear: gearStr,
+    tire,
+    rpm: Math.round(currentRpm),
+    speed: currentSpeed.toFixed(2),
+  };
+
+  const list = JSON.parse(localStorage.getItem("rpmHistory") || "[]");
+  list.unshift(entry);
+  localStorage.setItem("rpmHistory", JSON.stringify(list));
+
+  renderHistory();
+  buildFilterOptions();
+}
+
+/* 履歴フィルター */
+function buildFilterOptions() {
+  const list = JSON.parse(localStorage.getItem("rpmHistory") || "[]");
+
+  const voltages = new Set();
+  const gears = new Set();
+  const tires = new Set();
+  const motors = new Set();
+  const names = new Set();
+
+  list.forEach(item => {
+    voltages.add(item.voltage);
+    gears.add(item.gear);
+    tires.add(item.tire);
+    motors.add(item.motor);
+    names.add(item.name);
+  });
+
+  fillSelect(filterVoltage, voltages, "電圧指定なし");
+  fillSelect(filterGear, gears, "ギヤ比指定なし");
+  fillSelect(filterTire, tires, "タイヤ径指定なし");
+  fillSelect(filterMotor, motors, "モーター指定なし");
+  fillSelect(filterName, names, "名前指定なし");
+}
+
+function fillSelect(select, values, label) {
+  const current = select.value;
+  select.innerHTML = `<option value="">${label}</option>`;
+  [...values].forEach(v => {
+    if (!v) return;
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+  select.value = current;
+}
+
+function applyHistoryFilter(list) {
+  return list.filter(item => {
+    if (filterVoltage.value && item.voltage !== filterVoltage.value) return false;
+    if (filterGear.value && item.gear !== filterGear.value) return false;
+    if (filterTire.value && item.tire !== filterTire.value) return false;
+    if (filterMotor.value && item.motor !== filterMotor.value) return false;
+    if (filterName.value && item.name !== filterName.value) return false;
+    return true;
+  });
+}
+
+/* 履歴表示 */
+function renderHistory() {
+  const list = JSON.parse(localStorage.getItem("rpmHistory") || "[]");
+  const filtered = applyHistoryFilter(list);
+
+  historyList.innerHTML = "";
+
+  filtered.forEach(item => {
+    const row = document.createElement("div");
+    row.className = "history-row";
+    row.innerHTML = `
+      <span>${item.date}</span>
+      <span>${item.name}</span>
+      <span>${item.motor}</span>
+      <span>${item.voltage}</span>
+      <span>${item.gear}</span>
+      <span>${item.tire}</span>
+      <span>${item.rpm}</span>
+      <span>${item.speed}</span>
+    `;
+    historyList.appendChild(row);
+  });
+}
 
 /* オーディオ初期化 */
 async function startAudio() {
@@ -126,3 +285,23 @@ async function startAudio() {
 generateComparisonTable();
 renderHistory();
 buildFilterOptions();
+
+/* === ここの下に付け足してね！ === */
+
+/* スライダーを動かしたときに数字をかえる魔法の命令 */
+
+// 1. ノートから「数字を表示する箱」を見つけてくるよ
+const minValText = document.getElementById("minVal");
+const maxValText = document.getElementById("maxVal");
+const minShowText = document.getElementById("minValShow"); // 追加
+const maxShowText = document.getElementById("maxValShow"); // 追加
+
+document.getElementById("minSlider").addEventListener("input", (e) => {
+  minValText.textContent = e.target.value;
+  minShowText.textContent = e.target.value; // 両方書き換える
+});
+
+document.getElementById("maxSlider").addEventListener("input", (e) => {
+  maxValText.textContent = e.target.value;
+  maxShowText.textContent = e.target.value; // 両方書き換える
+});
