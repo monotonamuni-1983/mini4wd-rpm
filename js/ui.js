@@ -49,16 +49,23 @@ UI.helpButton.addEventListener("click", () => {
 });
 
 /* 計測開始 / 停止 */
-UI.startBtn.addEventListener("click", () => {
-  measuring = !measuring;
-
-  if (measuring) {
-    UI.startBtn.textContent = "計測停止";
-    UI.statusLine.textContent = "MEASURING — 計測中";
-  } else {
-    UI.startBtn.textContent = "計測開始";
-    UI.statusLine.textContent = "MEASURING — 計測待機中";
-  }
+/* js/ui.js 内のここを書き換える */
+UI.startBtn.addEventListener("click", async () => {
+    if (!measuring) {
+        // まだオーディオを開始していなければ初期化
+        if (!audioCtx) {
+            await startAudio();
+        }
+        measuring = true;
+        loop(); // 解析ループを開始！
+        
+        UI.startBtn.textContent = "計測停止";
+        UI.statusLine.textContent = "MEASURING — 計測中";
+    } else {
+        measuring = false; // ループが止まる
+        UI.startBtn.textContent = "計測開始";
+        UI.statusLine.textContent = "MEASURING — 計測待機中";
+    }
 });
 
 /* ロック */

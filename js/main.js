@@ -1,3 +1,11 @@
+/* === グローバル変数（ここに配置） === */
+let audioCtx;
+let analyser;
+let dataArray;
+let measuring = false; // すでに定義済みなら削除してください
+
+// ... (以下、既存の rpmNow などの取得処理が続く)
+
 const waveCanvas = document.getElementById("waveCanvas");
 const ctx = waveCanvas.getContext("2d");
 
@@ -87,38 +95,66 @@ function computeSpeedFromRpm(rpm) {
   return { adjustedRpm, speed };
 }
 
-/* リアルタイム更新 */
-function updateRealtimeValues() {
-  if (!measuring) {
-    setTimeout(updateRealtimeValues, 300);
-    return;
-  }
-
-  const voltage = parseFloat(document.getElementById("voltageRange").value);
-
-  /* 11200RPM問題の完全解決：電圧依存式を廃止 */
-  currentRpm = 15000 + Math.random() * 5000;
-
-  const { adjustedRpm, speed } = computeSpeedFromRpm(currentRpm);
-  currentSpeed = speed;
-
-  if (maxRpmVal === 0 || adjustedRpm > maxRpmVal) maxRpmVal = adjustedRpm;
-  if (minRpmVal === 0 || adjustedRpm < minRpmVal) minRpmVal = adjustedRpm;
-
-  if (maxSpeedVal === 0 || speed > maxSpeedVal) maxSpeedVal = speed;
-  if (minSpeedVal === 0 || speed < minSpeedVal) minSpeedVal = speed;
-
-  rpmNow.textContent = Math.round(adjustedRpm);
-  rpmMax.textContent = Math.round(maxRpmVal);
-  rpmMin.textContent = Math.round(minRpmVal);
-
-  speedNow.textContent = speed.toFixed(2) + " km/h";
-  speedTop.textContent = maxSpeedVal.toFixed(2) + " km/h";
-  speedMin.textContent = minSpeedVal.toFixed(2) + " km/h";
-
-  setTimeout(updateRealtimeValues, 300);
+function getPrecisePeak(data, fftSize, sampleRate) {
+    const minFreq = parseInt(document.getElementById("minSlider").value) / 60;
+    const maxFreq = parseInt(document.getElementById("maxSlider").value) / 60;
+    const minBin = Math.floor(minFreq * fftSize / sampleRate);
+    const maxBin = Math.floor(maxFreq * fftSize / sampleRate);
+    
+    let maxVal = -Infinity, maxIdx = -1;
+    for (let i = minBin; i < maxBin; i++) {
+        if (data[i] > maxVal) { maxVal = data[i]; maxIdx = i; }
+    }
+    if (maxIdx <= minBin || maxIdx >= maxBin - 1) return 0;
+    
+    const y1 = data[maxIdx - 1], y2 = data[maxIdx], y3 = data[maxIdx + 1];
+    const offset = (y1 - y3) / (2 * (y1 - 2 * y2 + y3));
+    return ((maxIdx + offset) * sampleRate) / fftSize;
 }
-updateRealtimeValues();
+
+/* 新しい計測ループ：これを js/main.js に追加 */
+function loop() {
+    if (!measuring) return; // 計測停止中は動かない
+    requestAnimationFrame(loop);
+
+    analyser.getFloatFrequencyData(dataArray);
+    
+    // キャンバス描画
+    ctx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+    ctx.beginPath();
+    ctx.strokeStyle = "#ff4fa3";
+    for (let i = 0; i < waveCanvas.width; i++) {
+        const val = (dataArray[i * 10] + 100) * 2;
+        ctx.lineTo(i, waveCanvas.height - val);
+    }
+    ctx.stroke();
+
+    // RPM解析と反映
+    const freq = getPrecisePeak(dataArray, FFT_SIZE, audioCtx.sampleRate);
+    if (freq > 0) {
+        const rawRpm = freq * 60 * 0.9924; // 補正係数
+        updateAppValues(rawRpm);
+    }
+}
+
+/* 画面を更新する処理：これも js/main.js に追加 */
+function updateAppValues(rawRpm) {
+    const { adjustedRpm, speed } = computeSpeedFromRpm(rawRpm);
+    currentRpm = adjustedRpm;
+    currentSpeed = speed;
+
+    if (maxRpmVal === 0 || adjustedRpm > maxRpmVal) maxRpmVal = adjustedRpm;
+    if (minRpmVal === 0 || adjustedRpm < minRpmVal) minRpmVal = adjustedRpm;
+    if (maxSpeedVal === 0 || speed > maxSpeedVal) maxSpeedVal = speed;
+    if (minSpeedVal === 0 || speed < minSpeedVal) minSpeedVal = speed;
+
+    rpmNow.textContent = Math.round(adjustedRpm);
+    rpmMax.textContent = Math.round(maxRpmVal);
+    rpmMin.textContent = Math.round(minRpmVal);
+    speedNow.textContent = speed.toFixed(2) + " km/h";
+    speedTop.textContent = maxSpeedVal.toFixed(2) + " km/h";
+    speedMin.textContent = minSpeedVal.toFixed(2) + " km/h";
+}
 
 /* 比較表（0.1V刻み） */
 function generateComparisonTable() {
@@ -287,6 +323,17 @@ function renderHistory() {
   });
 }
 
+/* オーディオ初期化（これ一つにまとめます） */
+async function startAudio() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 16384;
+    dataArray = new Float32Array(analyser.frequencyBinCount);
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+}
+
+/* 初期化実行 */
 generateComparisonTable();
 renderHistory();
 buildFilterOptions();

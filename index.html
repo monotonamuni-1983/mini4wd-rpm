@@ -24,6 +24,13 @@
 
       <div class="fft-header">FFTスペクトラム</div>
       <canvas id="waveCanvas"></canvas>
+      <div class="slider-container" style="margin: 15px 0; position: relative;">
+    <input type="range" id="minSlider" min="3000" max="60000" step="500" value="20000" style="width: 100%;">
+    <input type="range" id="maxSlider" min="3000" max="60000" step="500" value="40000" style="width: 100%;">
+</div>
+<div style="font-size: 0.9rem; text-align: center; margin-bottom: 10px;">
+    計測範囲: <span id="minVal">20000</span> RPM ～ <span id="maxVal">40000</span> RPM
+</div>
 
       <div class="rpm-grid">
         <div><span>RPM</span><span id="rpmNow">0</span></div>
