@@ -11,7 +11,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px; /* ←150%拡大 */
+  padding: 18px 24px;
   background: #f5f7ff;
   border-bottom: 1px solid #dce3f7;
 }
@@ -24,15 +24,15 @@ body {
 
 .header-buttons {
   display: flex;
-  gap: 16px; /* ←広げる */
+  gap: 16px;
 }
 
 .header-buttons button {
-  padding: 16px 26px; /* ←150%拡大 */
+  padding: 16px 26px;
   border-radius: 999px;
   background: #e6ecff;
   color: #4a6cff;
-  font-size: 1.05rem; /* ←拡大 */
+  font-size: 1.05rem;
   font-weight: 700;
   border: none;
   box-shadow: 0 2px 6px rgba(0,0,0,0.12);
@@ -62,7 +62,7 @@ body {
 /* FFTスペクトラム */
 #waveCanvas {
   width: 100%;
-  height: 160px; /* 鋭利FFTに合わせて少し拡大 */
+  height: 160px;
   background: #ffffff;
   border-radius: 12px;
   box-shadow: inset 0 0 6px rgba(0,0,0,0.08);
@@ -81,13 +81,14 @@ body {
 .speed-grid div {
   display: flex;
   flex-direction: column;
-  font-size: 0.9rem;
+  font-size: 1.4rem;
 }
 
 .rpm-grid span:last-child,
 .speed-grid span:last-child {
   font-weight: 700;
   margin-top: 2px;
+  font-size: 2.5rem; /* 数字を大きく */
 }
 
 /* 状態ライン */
@@ -164,14 +165,6 @@ input[type="range"]::-webkit-slider-thumb {
   text-align: left;
 }
 
-.highlight-row {
-  background: rgba(120, 160, 255, 0.18);
-}
-
-.highlight-col {
-  background: rgba(255, 150, 200, 0.18);
-}
-
 /* モーダル共通 */
 .modal-backdrop {
   position: fixed;
@@ -189,6 +182,7 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 18px 18px 0 0;
   padding: 18px;
   position: relative;
+  box-sizing: border-box; /* はみ出し防止 */
 }
 
 .modal-title {
@@ -201,23 +195,39 @@ input[type="range"]::-webkit-slider-thumb {
   display: none;
 }
 
-/* 履歴フィルター */
+/* --- 履歴セクション --- */
+.history-wrapper {
+  overflow-x: auto;
+  min-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.history-filter,
+.history-header-fixed,
+.history-list,
+.history-row {
+  min-width: 650px;
+}
+
 .history-filter {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 12px;
+  justify-content: center;
 }
 
 .history-filter select {
+  flex: 1 1 30%;
+  min-width: 100px;
   padding: 10px;
   border-radius: 10px;
   border: 1px solid #c7d6ff;
   background: #ffffff;
   font-size: 0.9rem;
+  box-sizing: border-box;
 }
 
-/* 履歴リスト */
 .history-header-fixed {
   position: sticky;
   top: 0;
@@ -228,11 +238,13 @@ input[type="range"]::-webkit-slider-thumb {
   display: grid;
   grid-template-columns: 90px 70px 80px 60px 70px 70px 60px 80px;
   border-bottom: 1px solid #c7d6ff;
+  z-index: 10;
 }
 
 .history-list {
   max-height: 50vh;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .history-row {
@@ -243,14 +255,17 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 0.9rem;
 }
 
-/* 保存モーダル */
-.text-input {
+/* --- 入力欄・保存系 --- */
+.text-input, 
+.modal select, 
+.modal input {
   width: 100%;
   padding: 10px;
   border-radius: 10px;
   border: 1px solid #c7d6ff;
   background: #ffffff;
   font-size: 1rem;
+  box-sizing: border-box; /* ★ここ重要：はみ出し防止 */
 }
 
 .save-buttons {
@@ -260,16 +275,15 @@ input[type="range"]::-webkit-slider-thumb {
   gap: 12px;
 }
 
-/* 閉じるボタン（2倍） */
 .close-btn {
   margin-top: 16px;
   width: 100%;
-  padding: 16px 0; /* ←高さも拡大 */
+  padding: 16px 0;
   border-radius: 999px;
   background: #e6ecff;
   color: #4a6cff;
   font-weight: 700;
-  font-size: 1.6rem; /* ←フォント2倍 */
+  font-size: 1.6rem;
   border: none;
 }
 

@@ -1,8 +1,13 @@
-/* === グローバル変数（ここに配置） === */
+/* === グローバル変数（main.js の一番上に書いてね） === */
 let audioCtx;
 let analyser;
 let dataArray;
-let measuring = false; // ここで1回だけ宣言します
+let measuring = false;
+let lockedRpm = 0; // ★ロックした時の数字を覚えておく箱
+
+// ...（グローバル変数のあたり）
+let isLocked = false; // ★これが「ロック中だよ！」と覚えるスイッチです
+let lockedRpm = 0;    // ★これが「止めた時の数字」を入れておく箱です
 
 // DOM要素の取得
 const waveCanvas = document.getElementById("waveCanvas");
@@ -14,6 +19,10 @@ const speedNow = document.getElementById("speedNow");
 const speedTop = document.getElementById("speedTop");
 const speedMin = document.getElementById("speedMin");
 const historyList = document.getElementById("historyList");
+const UI = {
+  statusLine: document.getElementById("statusLine"),
+  lockBtn: document.getElementById("lockBtn")
+};
 
 let currentRpm = 0, maxRpmVal = 0, minRpmVal = 0;
 let currentSpeed = 0, maxSpeedVal = 0, minSpeedVal = 0;
@@ -87,14 +96,21 @@ function loop() {
 
 /* 画面更新 */
 function updateAppValues(rawRpm) {
-    const { adjustedRpm, speed } = computeSpeedFromRpm(rawRpm);
-    currentRpm = adjustedRpm; currentSpeed = speed;
+    // もし「ロック中」なら、ここで処理を止めてね！というガードです
+    // (UI.statusLineの文字で判断するか、isLockedスイッチで判断します)
+    if (UI.statusLine.textContent === "LOCKED — ロック中") return;
 
+    const { adjustedRpm, speed } = computeSpeedFromRpm(rawRpm);
+    currentRpm = adjustedRpm; 
+    currentSpeed = speed;
+
+    // 最大・最小の更新
     if (maxRpmVal === 0 || adjustedRpm > maxRpmVal) maxRpmVal = adjustedRpm;
     if (minRpmVal === 0 || adjustedRpm < minRpmVal) minRpmVal = adjustedRpm;
     if (maxSpeedVal === 0 || speed > maxSpeedVal) maxSpeedVal = speed;
     if (minSpeedVal === 0 || speed < minSpeedVal) minSpeedVal = speed;
 
+    // 画面の更新
     rpmNow.textContent = Math.round(adjustedRpm);
     rpmMax.textContent = Math.round(maxRpmVal);
     rpmMin.textContent = Math.round(minRpmVal);
@@ -109,10 +125,11 @@ function generateComparisonTable() {
   const comparisonBody = document.getElementById("comparisonBody");
   comparisonBody.innerHTML = "";
 
+  // ★ここを parseFloat に変えてね（これで小数も計算できるよ！）
   const tire = parseFloat(document.getElementById("tireRange").value);
   const currentVoltage = parseFloat(document.getElementById("voltageRange").value).toFixed(1);
-
-  const baseRpmAt28 = 15000;
+ 
+ const baseRpmAt28 = 15000;
 
   for (let v = 2.2; v <= 3.4; v += 0.1) {
     const voltage = v.toFixed(1);

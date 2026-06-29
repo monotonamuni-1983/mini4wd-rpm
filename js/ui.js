@@ -68,9 +68,24 @@ UI.startBtn.addEventListener("click", async () => {
     }
 });
 
-/* ロック */
+/* ロック / ロック解除の切り替え */
 UI.lockBtn.addEventListener("click", () => {
-  UI.statusLine.textContent = "LOCKED — ロック中";
+  
+  if (UI.lockBtn.textContent === "ロック") {
+    // 【ロックする時】
+    UI.statusLine.textContent = "LOCKED — ロック中";
+    UI.lockBtn.textContent = "ロック解除";
+    isLocked = true;
+    
+    // ★ここでメモを取る！今の数字を「保存用ボックス」に入れるよ
+    lockedRpm = currentRpm; 
+  } 
+  else {
+    // 【解除する時】
+    UI.statusLine.textContent = "計測中...";
+    UI.lockBtn.textContent = "ロック";
+    isLocked = false;
+  }
 });
 
 /* 保存モーダルを開く */
