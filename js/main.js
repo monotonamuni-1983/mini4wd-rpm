@@ -16,7 +16,6 @@ const fftSize = 8192;
 let currentSessionRPMs = [];
 
 let historyChart = null;
-let lockedData = null;
 
 /* ============================
    DOM 取得
@@ -63,7 +62,7 @@ async function initAudio() {
 }
 
 /* ============================
-   FFT → 周波数推定（ピーク補間）
+   FFT → 周波数推定
 ============================ */
 function estimateFrequencyAdvanced() {
   if (!analyser) return 0;
@@ -120,56 +119,25 @@ function calculateMetrics(freq) {
    スペクトラム描画
 ============================ */
 function drawSpectrumGrid() {
-  (function ensureCanvasSize() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.clientWidth || Math.max(320, window.innerWidth - 32);
-    const h = canvas.clientHeight || Math.max(220, Math.round(window.innerHeight * 0.25));
-    const targetW = Math.floor(w * dpr);
-    const targetH = Math.floor(h * dpr);
-    if (canvas.width !== targetW || canvas.height !== targetH) {
-      canvas.width = targetW;
-      canvas.height = targetH;
-    }
-  })();
-
   const dpr = window.devicePixelRatio || 1;
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
+  const w = canvas.clientWidth || 300;
+  const h = canvas.clientHeight || 200;
 
-  if (!w || !h) return;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
 
   ctx.save();
   ctx.scale(dpr, dpr);
-  ctx.fillStyle = "#000000";
+  ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, w, h);
 
-  const targetFreqs = [200, 500, 1000, 1500, 2000, 2500];
-  ctx.strokeStyle = "rgba(75, 85, 99, 0.4)";
-  ctx.lineWidth = 1;
-  ctx.fillStyle = "#9ca3af";
-  ctx.font = "10px sans-serif";
-
-  targetFreqs.forEach(f => {
-    const x = ((f - 80) / (3000 - 80)) * w;
-    if (x >= 0 && x <= w) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-      ctx.fillText(f, x + 4, h - 6);
-    }
-  });
-
+  ctx.strokeStyle = "rgba(255,255,255,0.1)";
   for (let y = h / 4; y < h; y += h / 4) {
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(w, y);
     ctx.stroke();
   }
-
-  const scanY = (Date.now() % 3000) / 3000 * h;
-  ctx.fillStyle = "rgba(37, 99, 235, 0.15)";
-  ctx.fillRect(0, scanY, w, 2);
 
   ctx.restore();
 }
@@ -179,8 +147,6 @@ function renderWaveform() {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
-
-  if (!w || !h) return;
 
   ctx.save();
   ctx.scale(dpr, dpr);
@@ -207,9 +173,7 @@ function mainLoop() {
     const freq = estimateFrequencyAdvanced();
     const { motorRPM, speed } = calculateMetrics(freq);
 
-    if (motorRPM > 0) {
-      currentSessionRPMs.push(motorRPM);
-    }
+    if (motorRPM > 0) currentSessionRPMs.push(motorRPM);
 
     document.getElementById("rpmValue").textContent = Math.round(motorRPM) + " RPM";
     document.getElementById("speedValue").textContent = speed.toFixed(1) + " km/h";
@@ -244,9 +208,9 @@ function generateMatrixTable(baseMotorRPM, currentVolt) {
   const tire = parseFloat(slideTire.value);
   const curVoltStr = currentVolt.toFixed(1);
 
-  let theadHTML = `<thead><tr><th>電圧</th><th style="color: var(--accent-color);">モーター<br><span style="font-size:10px;">RPM</span></th>`;
+  let theadHTML = `<thead><tr><th>電圧</th><th>モーターRPM</th>`;
   GEAR_VALUES.forEach(g => {
-    theadHTML += `<th style="color: #f59e0b;">${g.toFixed(1)}:1<br><span style="font-size:9px; font-weight:normal; opacity:0.8;">RPM / KM/H</span></th>`;
+    theadHTML += `<th>${g.toFixed(1)}:1<br>RPM / KM/H</th>`;
   });
   theadHTML += `</tr></thead>`;
 
@@ -257,26 +221,13 @@ function generateMatrixTable(baseMotorRPM, currentVolt) {
 
     tbodyHTML += `<tr${rowClass}><td>${v.toFixed(1)}V</td>`;
 
-    let estMotorRPM = 0;
-    if (baseMotorRPM > 0 && currentVolt > 0) {
-      estMotorRPM = baseMotorRPM * (v / currentVolt);
-    }
-    tbodyHTML += `<td style="font-weight:500;">${estMotorRPM > 0 ? Math.round(estMotorRPM) + ' RPM' : "---"}</td>`;
+    let estMotorRPM = baseMotorRPM * (v / currentVolt);
+    tbodyHTML += `<td>${Math.round(estMotorRPM)}</td>`;
 
     GEAR_VALUES.forEach(g => {
-      if (estMotorRPM > 0) {
-        const wheelRPM = estMotorRPM / g;
-        const speed = wheelRPM * (Math.PI * (tire / 1000)) * 60 / 1000;
-        tbodyHTML += `<td>
-          <div style="font-weight:bold;">${Math.round(wheelRPM)} RPM</div>
-          <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">${speed.toFixed(1)} km/h</div>
-        </td>`;
-      } else {
-        tbodyHTML += `<td>
-          <div style="opacity:0.4;">---</div>
-          <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">--- km/h</div>
-        </td>`;
-      }
+      const wheelRPM = estMotorRPM / g;
+      const speed = wheelRPM * (Math.PI * (tire / 1000)) * 60 / 1000;
+      tbodyHTML += `<td>${Math.round(wheelRPM)} / ${speed.toFixed(1)}</td>`;
     });
 
     tbodyHTML += `</tr>`;
@@ -293,10 +244,8 @@ function getHistorySafe() {
     const raw = localStorage.getItem("rpmHistoryV3");
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
-  } catch (e) {
-    console.warn("history parse error", e);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
     return [];
   }
 }
@@ -311,45 +260,20 @@ function updateMotorCompareTable(history) {
     motorMap[item.name].push(item);
   });
 
-  const names = Object.keys(motorMap);
-  if (names.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="color:var(--text-muted);">データがありません。</td></tr>`;
-    return;
-  }
-
-  names.forEach(name => {
+  Object.keys(motorMap).forEach(name => {
     const runs = motorMap[name];
     const maxRPM = Math.max(...runs.map(r => r.maxRpm));
-    const maxSpeed = Math.max(...runs.map(r => r.maxSpeed));
     const avgRPM = Math.round(runs.reduce((s, r) => s + r.avgRpm, 0) / runs.length);
-    const volts = [...new Set(runs.map(r => r.volt + "V"))].join(", ");
-
-    const avgStab = runs.reduce((s, r) => s + (r.stabilityIndex || 0), 0) / runs.length;
-    const avgEff = runs.reduce((s, r) => s + (r.efficiencyIndex || 0), 0) / runs.length;
-
-    const beforeRuns = runs.filter(r => r.breakInPhase === "before");
-    const afterRuns = runs.filter(r => r.breakInPhase === "after");
-    const beforeCount = beforeRuns.length;
-    const afterCount = afterRuns.length;
-
-    let growthRate = "-";
-    if (beforeRuns.length > 0 && afterRuns.length > 0) {
-      const beforeAvg = beforeRuns.reduce((s, r) => s + r.avgRpm, 0) / beforeRuns.length;
-      const afterAvg = afterRuns.reduce((s, r) => s + r.avgRpm, 0) / afterRuns.length;
-      growthRate = (((afterAvg - beforeAvg) / beforeAvg) * 100).toFixed(1) + "%";
-    }
+    const maxSpeed = Math.max(...runs.map(r => r.maxSpeed));
+    const volts = [...new Set(runs.map(r => r.volt))].join(", ");
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>🏎️ <b>${name}</b></td>
+      <td>${name}</td>
       <td>${volts}</td>
-      <td style="color:#ef4444; font-weight:bold;">${maxRPM} RPM</td>
-      <td>${avgRPM} RPM</td>
-      <td style="color:#10b981; font-weight:bold;">${maxSpeed.toFixed(1)} km/h</td>
-      <td>${avgStab.toFixed(1)}</td>
-      <td>${avgEff.toFixed(1)}</td>
-      <td>${beforeCount} / ${afterCount}</td>
-      <td>${growthRate}</td>
+      <td>${maxRPM}</td>
+      <td>${avgRPM}</td>
+      <td>${maxSpeed.toFixed(1)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -357,43 +281,40 @@ function updateMotorCompareTable(history) {
 
 function populateFilterOptions(history) {
   const names = [...new Set(history.map(h => h.name))];
-  const volts = [...new Set(history.map(h => h.volt))].sort();
-  const gears = [...new Set(history.map(h => h.gear))].sort();
-  const tires = [...new Set(history.map(h => h.tire))].sort();
+  const volts = [...new Set(history.map(h => h.volt))];
+  const gears = [...new Set(history.map(h => h.gear))];
+  const tires = [...new Set(history.map(h => h.tire))];
 
-  updateSelectOptions("filterName", names);
-  updateSelectOptions("filterVolt", volts, "V");
-  updateSelectOptions("filterGear", gears, ":1");
-  updateSelectOptions("filterTire", tires, "mm");
+  updateSelect("filterName", names);
+  updateSelect("filterVolt", volts);
+  updateSelect("filterGear", gears);
+  updateSelect("filterTire", tires);
 }
 
-function updateSelectOptions(elementId, array, suffix = "") {
-  const select = document.getElementById(elementId);
-  const currentVal = select.value;
-  select.innerHTML = '<option value="">すべて</option>';
-
-  array.forEach(item => {
+function updateSelect(id, arr) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = `<option value="">すべて</option>`;
+  arr.forEach(v => {
     const opt = document.createElement("option");
-    opt.value = item;
-    opt.textContent = item + suffix;
-    if (item.toString() === currentVal) opt.selected = true;
-    select.appendChild(opt);
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
   });
 }
 
 function applyFilters() {
   const history = getHistorySafe();
-  const fName = document.getElementById("filterName").value;
-  const fVolt = document.getElementById("filterVolt").value;
-  const fGear = document.getElementById("filterGear").value;
-  const fTire = document.getElementById("filterTire").value;
+  const fName = filterName.value;
+  const fVolt = filterVolt.value;
+  const fGear = filterGear.value;
+  const fTire = filterTire.value;
 
-  const filtered = history.filter(h => {
-    return (!fName || h.name === fName) &&
-           (!fVolt || String(h.volt) === String(fVolt)) &&
-           (!fGear || String(h.gear) === String(fGear)) &&
-           (!fTire || String(h.tire) === String(fTire));
-  });
+  const filtered = history.filter(h =>
+    (!fName || h.name === fName) &&
+    (!fVolt || String(h.volt) === fVolt) &&
+    (!fGear || String(h.gear) === fGear) &&
+    (!fTire || String(h.tire) === fTire)
+  );
 
   renderHistoryRows(filtered);
   drawHistoryChart(filtered);
@@ -403,28 +324,18 @@ function renderHistoryRows(data) {
   const tbody = document.getElementById("historyTable");
   tbody.innerHTML = "";
 
-  if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="color:var(--text-muted);">データがありません。</td></tr>`;
-    return;
-  }
-
   data.forEach(item => {
-    const phaseLabel = item.breakInPhase === "after" ? "🔥 After" : "❄ Before";
-
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${item.date}</td>
-      <td style="font-weight:bold;">
-      <td style="font-weight:bold;">${item.name}</td>
-      <td style="color:#ef4444; font-weight:bold;">${item.maxRpm} RPM</td>
-      <td>${item.avgRpm} RPM</td>
-      <td>${item.volt} V</td>
-      <td style="font-weight:bold;">${item.gear}:1</td>
-      <td>${item.tire} mm</td>
-      <td>${phaseLabel}</td>
-      <td>
-        <button class="btn-sm btn-danger" onclick="deleteRecord(${item.id})">削除</button>
-      </td>
+      <td>${item.name}</td>
+      <td>${item.maxRpm}</td>
+      <td>${item.avgRpm}</td>
+      <td>${item.volt}</td>
+      <td>${item.gear}</td>
+      <td>${item.tire}</td>
+      <td>${item.breakInPhase}</td>
+      <td><button class="btn-danger btn-sm" onclick="deleteRecord(${item.id})">削除</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -434,107 +345,71 @@ function renderHistoryRows(data) {
    履歴グラフ
 ============================ */
 function drawHistoryChart(data) {
-  const hctx = document.getElementById("historyChart").getContext("2d");
-  const labels = data.map(d => d.date + " / " + d.name);
-  const maxRpmData = data.map(d => d.maxRpm);
-  const avgRpmData = data.map(d => d.avgRpm);
+  const ctxH = document.getElementById("historyChart").getContext("2d");
 
   if (historyChart) historyChart.destroy();
 
-  historyChart = new Chart(hctx, {
+  historyChart = new Chart(ctxH, {
     type: "line",
     data: {
-      labels,
+      labels: data.map(d => d.date + " / " + d.name),
       datasets: [
         {
           label: "MAX RPM",
-          data: maxRpmData,
+          data: data.map(d => d.maxRpm),
           borderColor: "#ef4444",
-          backgroundColor: "rgba(239,68,68,0.2)",
-          tension: 0.2
+          backgroundColor: "rgba(239,68,68,0.2)"
         },
         {
           label: "AVG RPM",
-          data: avgRpmData,
+          data: data.map(d => d.avgRpm),
           borderColor: "#3b82f6",
-          backgroundColor: "rgba(59,130,246,0.2)",
-          tension: 0.2
+          backgroundColor: "rgba(59,130,246,0.2)"
         }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { ticks: { maxRotation: 45, minRotation: 0 } },
-        y: { beginAtZero: false }
-      }
-    }
+    options: { responsive: true, maintainAspectRatio: false }
   });
 }
 
 /* ============================
-   CSV / Excel / 履歴削除
+   CSV / Excel / 削除
 ============================ */
-function exportCSV() {
+exportCSVBtn.addEventListener("click", () => {
   const history = getHistorySafe();
-  if (history.length === 0) {
-    alert("履歴がありません");
-    return;
-  }
+  if (!history.length) return alert("履歴がありません");
 
-  const header = [
-    "date","name","maxRpm","avgRpm","volt","gear","tire",
-    "stabilityIndex","efficiencyIndex","breakInPhase","maxSpeed"
-  ];
+  const header = ["date","name","maxRpm","avgRpm","volt","gear","tire","breakInPhase","maxSpeed"];
   const rows = history.map(h => [
-    h.date, h.name, h.maxRpm, h.avgRpm, h.volt, h.gear, h.tire,
-    h.stabilityIndex ?? "", h.efficiencyIndex ?? "",
-    h.breakInPhase ?? "", h.maxSpeed ?? ""
+    h.date, h.name, h.maxRpm, h.avgRpm, h.volt, h.gear, h.tire, h.breakInPhase, h.maxSpeed
   ]);
 
   let csv = header.join(",") + "\n";
-  rows.forEach(r => {
-    csv += r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
-  });
+  rows.forEach(r => csv += r.join(",") + "\n");
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = "rpm_history.csv";
   a.click();
   URL.revokeObjectURL(url);
-}
+});
 
-function exportExcel() {
+exportExcelBtn.addEventListener("click", () => {
   const history = getHistorySafe();
-  if (history.length === 0) {
-    alert("履歴がありません");
-    return;
-  }
+  if (!history.length) return alert("履歴がありません");
 
-  const wsData = [[
-    "date","name","maxRpm","avgRpm","volt","gear","tire",
-    "stabilityIndex","efficiencyIndex","breakInPhase","maxSpeed"
-  ]];
-
-  history.forEach(h => {
-    wsData.push([
-      h.date, h.name, h.maxRpm, h.avgRpm, h.volt, h.gear, h.tire,
-      h.stabilityIndex ?? "", h.efficiencyIndex ?? "",
-      h.breakInPhase ?? "", h.maxSpeed ?? ""
-    ]);
-  });
+  const wsData = [["date","name","maxRpm","avgRpm","volt","gear","tire","breakInPhase","maxSpeed"]];
+  history.forEach(h => wsData.push([
+    h.date, h.name, h.maxRpm, h.avgRpm, h.volt, h.gear, h.tire, h.breakInPhase, h.maxSpeed
+  ]));
 
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(wsData);
   XLSX.utils.book_append_sheet(wb, ws, "RPM History");
   XLSX.writeFile(wb, "rpm_history.xlsx");
-}
-
-exportCSVBtn.addEventListener("click", exportCSV);
-exportExcelBtn.addEventListener("click", exportExcel);
+});
 
 clearAllBtn.addEventListener("click", () => {
   if (!confirm("履歴をすべて削除しますか？")) return;
@@ -543,9 +418,8 @@ clearAllBtn.addEventListener("click", () => {
 });
 
 function deleteRecord(id) {
-  const history = getHistorySafe();
-  const filtered = history.filter(h => h.id !== id);
-  localStorage.setItem("rpmHistoryV3", JSON.stringify(filtered));
+  const history = getHistorySafe().filter(h => h.id !== id);
+  localStorage.setItem("rpmHistoryV3", JSON.stringify(history));
   updateAllHistoryComponents();
 }
 
@@ -555,19 +429,16 @@ function deleteRecord(id) {
 startBtn.addEventListener("click", async () => {
   try {
     await initAudio();
-    if (audioCtx.state === "suspended") {
-      await audioCtx.resume();
-    }
+    if (audioCtx.state === "suspended") await audioCtx.resume();
 
+    running = !running;
     if (running) {
-      running = false;
-      startBtn.textContent = "▶ 計測";
-    } else {
-      running = true;
       locked = false;
       currentSessionRPMs = [];
       startBtn.textContent = "⏸ 停止";
       lockBtn.textContent = "🔒";
+    } else {
+      startBtn.textContent = "▶ 計測";
     }
   } catch (err) {
     alert("マイクのアクセス許可が必要です: " + err);
@@ -575,88 +446,71 @@ startBtn.addEventListener("click", async () => {
 });
 
 lockBtn.addEventListener("click", () => {
-  if (currentSessionRPMs.length === 0) return;
+  if (!currentSessionRPMs.length) return;
 
-  if (locked) {
-    locked = false;
-    lockBtn.textContent = "🔒";
-    lockedData = null;
-  } else {
-    locked = true;
-    running = false;
-    startBtn.textContent = "▶ 計測";
-    lockBtn.textContent = "🔓";
+  locked = !locked;
+  lockBtn.textContent = locked ? "🔓" : "🔒";
 
-    const max = Math.max(...currentSessionRPMs);
-    const avg = currentSessionRPMs.reduce((a, b) => a + b, 0) / currentSessionRPMs.length;
-
-    const targetGear = GEAR_VALUES[slideGear.value];
-    const tire = parseFloat(slideTire.value);
-    const wheelRPM = max / targetGear;
-    const maxSpeed = wheelRPM * (Math.PI * (tire / 1000)) * 60 / 1000;
-
-    const variance = currentSessionRPMs.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / currentSessionRPMs.length;
-    const stddev = Math.sqrt(variance);
-    let stabilityIndex = 100 - (stddev / avg * 100 * 1.5);
-    stabilityIndex = Math.max(0, Math.min(100, stabilityIndex));
-
-    const volt = parseFloat(slideVolt.value);
-    let efficiencyIndex = (avg / (volt * 12000)) * 100;
-    efficiencyIndex = Math.max(0, Math.min(100, efficiencyIndex));
-
-    const now = new Date();
-    const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-
-    lockedData = {
-      maxRpm: Math.round(max),
-      avgRpm: Math.round(avg),
-      volt: slideVolt.value,
-      gear: targetGear,
-      tire: tire,
-      maxSpeed: maxSpeed,
-      date: dateStr,
-      stabilityIndex,
-      efficiencyIndex,
-      breakInPhase: inputPhase.value
-    };
-  }
+  if (locked) running = false;
 });
 
 saveBtn.addEventListener("click", () => {
-  if (!lockedData) return;
+  if (!currentSessionRPMs.length) return;
 
-  const motorName = prompt("登録名(例:マッハPダッシュ等)を入力してください:", "カスタムモーター");
+  const motorName = prompt("モーター名を入力:", "カスタムモーター");
   if (motorName === null) return;
 
-  const finalName = motorName.trim() === "" ? "未命名" : motorName.trim();
+  const max = Math.max(...currentSessionRPMs);
+  const avg = currentSessionRPMs.reduce((a, b) => a + b, 0) / currentSessionRPMs.length;
+
+  const gear = GEAR_VALUES[slideGear.value];
+  const tire = parseFloat(slideTire.value);
+  const wheelRPM = max / gear;
+  const maxSpeed = wheelRPM * (Math.PI * (tire / 1000)) * 60 / 1000;
+
+  const now = new Date();
+  const dateStr =
+    `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,"0")}/${String(now.getDate()).padStart(2,"0")} ` +
+    `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
 
   const history = getHistorySafe();
-  lockedData.name = finalName;
-  lockedData.id = Date.now();
-  history.push(lockedData);
-  localStorage.setItem("rpmHistoryV3", JSON.stringify(history));
 
+  history.push({
+    id: Date.now(),
+    date: dateStr,
+    name: motorName.trim(),
+    maxRpm: Math.round(max),
+    avgRpm: Math.round(avg),
+    volt: parseFloat(slideVolt.value),
+    gear: gear,
+    tire: tire,
+    breakInPhase: inputPhase.value,
+    maxSpeed: maxSpeed
+  });
+
+  localStorage.setItem("rpmHistoryV3", JSON.stringify(history));
   updateAllHistoryComponents();
+
   locked = false;
-  lockedData = null;
   lockBtn.textContent = "🔒";
+  currentSessionRPMs = [];
 });
 
 resetBtn.addEventListener("click", () => {
   currentSessionRPMs = [];
+  locked = false;
+  lockBtn.textContent = "🔒";
+
   document.getElementById("sessMax").textContent = "0";
   document.getElementById("sessMin").textContent = "0";
   document.getElementById("sessAvg").textContent = "0";
   document.getElementById("sessCount").textContent = "0";
   document.getElementById("rpmValue").textContent = "0 RPM";
   document.getElementById("speedValue").textContent = "0.0 km/h";
-  locked = false;
-  lockedData = null;
-  lockBtn.textContent = "🔒";
 });
 
 /* ============================
-   履歴全体更新
+   全履歴更新
 ============================ */
 function updateAllHistoryComponents() {
   const history = getHistorySafe();
@@ -670,21 +524,19 @@ function updateAllHistoryComponents() {
    リサイズ
 ============================ */
 function handleResize() {
-  try {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.clientWidth || window.innerWidth;
-    const h = canvas.clientHeight || Math.max(220, Math.round(window.innerHeight * 0.25));
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-    drawSpectrumGrid();
-    renderWaveform();
-  } catch (e) {}
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 300;
+  const h = canvas.clientHeight || 200;
+
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+
+  drawSpectrumGrid();
+  renderWaveform();
 }
 
-window.addEventListener('resize', handleResize);
-window.addEventListener('orientationchange', () => {
-  setTimeout(handleResize, 250);
-});
+window.addEventListener("resize", handleResize);
+window.addEventListener("orientationchange", () => setTimeout(handleResize, 250));
 
 /* ============================
    初期化

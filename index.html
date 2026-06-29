@@ -24,7 +24,8 @@
 <!-- メインページ -->
 <div id="pageMain" class="view-page active">
   <div class="grid-2">
-    <!-- 左: スペクトラム -->
+
+    <!-- 左：リアルタイム計測 -->
     <div class="realtime-column">
       <div class="section">
         <h2>リアルタイム計測</h2>
@@ -52,17 +53,17 @@
           <button id="resetBtn" class="btn-danger">♻</button>
         </div>
 
-        <div class="spectrum-wrapper" id="spectrumWrapper">
+        <div class="spectrum-wrapper">
           <canvas id="spectrumCanvas"></canvas>
         </div>
       </div>
     </div>
 
-    <!-- 右: 基本設定 -->
+    <!-- 右：基本設定 -->
     <div>
       <div class="section settings-panel">
         <details open>
-          <summary>🛠️ 基本設定 (クリックで開閉)</summary>
+          <summary>🛠️ 基本設定</summary>
 
           <div class="slider-group">
             <div class="slider-item">
@@ -97,23 +98,17 @@
 
         <h3>設定プリセット (8スロット)</h3>
         <div class="preset-grid" id="presetGrid"></div>
-        <p style="font-size:11px; color:var(--text-muted); margin-top:5px; text-align:center;">
-          ※短押しで読込 / 長押しで現在値を保存
-        </p>
-
-        <div style="height:12px;"></div>
+        <p style="font-size:11px; color:var(--text-muted); text-align:center;">※短押しで読込 / 長押しで保存</p>
 
         <div class="section" style="margin-top:8px;">
           <h2>📋 電圧・ギヤ比別 車輪回転数＆時速 比較表</h2>
-          <p style="font-size:11px; color:var(--text-muted);">
-            縦軸に電圧、横軸にギヤ比を配した総当たり表です。スライダー連動行がハイライトされます。
-          </p>
           <div class="table-responsive">
             <table id="matrixTable"></table>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
@@ -121,25 +116,20 @@
 <div id="pageHistory" class="view-page">
   <div class="section">
     <h2>🏎️ 複数モーター性能比較ベンチ</h2>
+
     <button class="btn-secondary" onclick="switchPage('main')" style="width:auto; margin-bottom:10px;">
       ← 計測画面に戻る
     </button>
-    <p style="font-size:11px; color:var(--text-muted);">
-      これまでに保存された同一モーター名の全データを集計し、各モーターの限界性能を横並びで比較します。
-    </p>
+
     <div class="table-responsive">
       <table>
         <thead>
           <tr>
             <th>モーター名</th>
-            <th>テスト電圧</th>
+            <th>電圧</th>
             <th>MAX RPM</th>
             <th>AVG RPM</th>
             <th>最高時速</th>
-            <th>安定性指数</th>
-            <th>効率指数</th>
-            <th>慣らし前/後</th>
-            <th>伸び率(AVG)</th>
           </tr>
         </thead>
         <tbody id="motorCompareTableBody"></tbody>
@@ -151,29 +141,21 @@
     <h2>📋 全体計測履歴一覧</h2>
 
     <div class="filter-container">
-      <div style="grid-column: 1 / -1; align-self: center;">
-        <label style="font-weight:bold; font-size:13px; color:var(--text-muted); margin:0;">フィルター</label>
+      <div style="grid-column: 1 / -1;">
+        <label style="font-weight:bold; font-size:13px; color:var(--text-muted);">フィルター</label>
       </div>
 
-      <div>
-        <select id="filterName" onchange="applyFilters()" aria-label="モーター名フィルター"><option value="">すべて</option></select>
-      </div>
-      <div>
-        <select id="filterVolt" onchange="applyFilters()" aria-label="電圧フィルター"><option value="">すべて</option></select>
-      </div>
-      <div>
-        <select id="filterGear" onchange="applyFilters()" aria-label="ギヤ比フィルター"><option value="">すべて</option></select>
-      </div>
-      <div>
-        <select id="filterTire" onchange="applyFilters()" aria-label="タイヤ径フィルター"><option value="">すべて</option></select>
-      </div>
+      <div><select id="filterName" onchange="applyFilters()"><option value="">すべて</option></select></div>
+      <div><select id="filterVolt" onchange="applyFilters()"><option value="">すべて</option></select></div>
+      <div><select id="filterGear" onchange="applyFilters()"><option value="">すべて</option></select></div>
+      <div><select id="filterTire" onchange="applyFilters()"><option value="">すべて</option></select></div>
     </div>
 
-    <div class="button-row" style="max-width: 650px; margin-bottom: 12px; flex-wrap: wrap;">
-      <button id="exportCSV" class="btn-secondary" style="width:auto;">CSV出力</button>
-      <button id="exportExcel" class="btn-secondary" style="width:auto;">Excel出力</button>
-      <button onclick="window.print()" style="background:#10b981; width:auto;">🖨️ レポート印刷</button>
-      <button id="clearAllBtn" class="btn-danger" style="width:auto;">⚠️ 履歴全削除</button>
+    <div class="button-row" style="max-width:650px; margin-bottom:12px; flex-wrap:wrap;">
+      <button id="exportCSV" class="btn-secondary">CSV出力</button>
+      <button id="exportExcel" class="btn-secondary">Excel出力</button>
+      <button onclick="window.print()" style="background:#10b981;">🖨️ レポート印刷</button>
+      <button id="clearAllBtn" class="btn-danger">⚠️ 履歴全削除</button>
     </div>
 
     <div class="table-responsive">
@@ -185,10 +167,10 @@
             <th>MAX RPM</th>
             <th>AVG RPM</th>
             <th>電圧</th>
-            <th>使用ギヤ比</th>
+            <th>ギヤ比</th>
             <th>タイヤ径</th>
             <th>慣らし</th>
-            <th>操作</th>
+            <th>削除</th>
           </tr>
         </thead>
         <tbody id="historyTable"></tbody>
@@ -198,7 +180,7 @@
 
   <div class="section">
     <h2>データ推移グラフ</h2>
-    <div style="position: relative; height: 260px; width: 100%;">
+    <div style="position:relative; height:260px;">
       <canvas id="historyChart"></canvas>
     </div>
   </div>
@@ -210,27 +192,21 @@
     <h3>⚙️ アナライザー詳細設定</h3>
 
     <div class="modal-item">
-      <label for="inputPoles">モーター極数 (標準片軸/両軸は「1」)</label>
+      <label for="inputPoles">モーター極数</label>
       <input id="inputPoles" type="number" min="1" max="12" value="1">
     </div>
 
     <div class="modal-item">
-      <label for="inputNoise">ノイズ閾値調整 (dB)</label>
-      <p style="font-size:11px; color:var(--text-muted); margin:0 0 5px 0;">
-        環境音を拾いすぎる場合は-100等に上げてください。
-      </p>
+      <label for="inputNoise">ノイズ閾値 (dB)</label>
       <input id="inputNoise" type="number" min="-140" max="-30" value="-120">
     </div>
 
     <div class="modal-item">
       <label for="inputCalib">RPM校正係数</label>
-      <p style="font-size:11px; color:var(--text-muted); margin:0 0 5px 0;">
-        実測との差を補正する係数 (例: 1.03 など)
-      </p>
       <input id="inputCalib" type="number" step="0.01" min="0.5" max="1.5" value="1.00">
     </div>
 
-    <button id="modalCloseBtn" style="margin-top: 15px;">設定を閉じて適用</button>
+    <button id="modalCloseBtn" style="margin-top:15px;">設定を閉じて適用</button>
   </div>
 </div>
 
