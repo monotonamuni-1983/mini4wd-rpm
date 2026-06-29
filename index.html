@@ -71,7 +71,7 @@
 
 <canvas id="specCanvas"></canvas>
 
-<!-- ▼▼ 正しく修正したレンジスライダー ▼▼ -->
+<!-- ▼▼ レンジスライダー（リアルタイム表示付き） ▼▼ -->
 <div class="control-box">
     計測範囲 (RPM)
     <div class="range-slider">
@@ -79,8 +79,13 @@
         <input type="range" id="maxRpm" min="5000" max="60000" value="40000">
         <div class="slider-track"></div>
     </div>
+
+    <!-- リアルタイム表示 -->
+    <div style="margin-top:10px; font-size:16px;">
+        最小RPM: <span id="minRpmLabel">20000</span>  
+        ／ 最大RPM: <span id="maxRpmLabel">40000</span>
+    </div>
 </div>
-<!-- ▲▲ ここが正しく表示されるようになった ▲▲ -->
 
 <div class="display-box">
     <div>現在の回転数 (16384 FFT)</div>
@@ -100,6 +105,14 @@ const minSlider = document.getElementById("minRpm");
 const maxSlider = document.getElementById("maxRpm");
 const track = document.querySelector(".slider-track");
 
+const minLabel = document.getElementById("minRpmLabel");
+const maxLabel = document.getElementById("maxRpmLabel");
+
+function updateLabels() {
+    minLabel.textContent = minSlider.value;
+    maxLabel.textContent = maxSlider.value;
+}
+
 function updateTrack() {
     const minVal = parseInt(minSlider.value);
     const maxVal = parseInt(maxSlider.value);
@@ -116,6 +129,7 @@ minSlider.addEventListener("input", () => {
         minSlider.value = maxSlider.value;
     }
     updateTrack();
+    updateLabels();
 });
 
 maxSlider.addEventListener("input", () => {
@@ -123,9 +137,11 @@ maxSlider.addEventListener("input", () => {
         maxSlider.value = minSlider.value;
     }
     updateTrack();
+    updateLabels();
 });
 
 updateTrack();
+updateLabels();
 /* ▲▲ レンジスライダー制御 ▲▲ */
 
 async function startAudio() {
