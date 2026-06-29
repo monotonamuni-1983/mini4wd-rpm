@@ -28,9 +28,6 @@ const UI = {
   lockBtn: document.getElementById("lockBtn")
 };
 
-let currentRpm = 0, maxRpmVal = 0, minRpmVal = 0;
-let currentSpeed = 0, maxSpeedVal = 0, minSpeedVal = 0;
-let wavePhase = 0;
 
 /* キャンバスサイズ調整 */
 function resizeCanvas() {
