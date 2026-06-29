@@ -143,8 +143,8 @@ function drawFFT(canvas, ctx, dataArray) {
 
     ctx.clearRect(0, 0, w, h);
 
-    ctx.strokeStyle = "#ff008c";              // 濃いネオンピンク
-    ctx.lineWidth = 1 * devicePixelRatio;     // 高精細ライン
+    ctx.strokeStyle = "#ff008c";
+    ctx.lineWidth = 1 * devicePixelRatio;
     ctx.shadowColor = "rgba(255,0,140,0.4)";
     ctx.shadowBlur = 2;
 
@@ -180,8 +180,8 @@ function drawRpmHzGraph(canvas, ctx, overlayCtx, rpm, fundamentalHz) {
     ctx.shadowColor = "rgba(255,0,140,0.4)";
     ctx.shadowBlur = 3;
 
-    const x = 40 + (rpm / 50000) * (w - 60);
-    const y = (h - 20) - ((fundamentalHz - 100) / 1700) * (h - 40);
+    const x = 40 + (rpm / 60000) * (w - 60);
+    const y = (h - 20) - ((fundamentalHz - 300) / (1500 - 300)) * (h - 40);
 
     ctx.beginPath();
     ctx.arc(x, y, 4, 0, Math.PI * 2);
@@ -200,27 +200,45 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
     const w = canvas.width;
     const h = canvas.height;
 
-    rpmHistory.push(rpm);
+    const MIN_RPM = 6000;
+    const MAX_RPM = 60000;
+
+    const rpmClamped = Math.max(rpm, MIN_RPM);
+
+    rpmHistory.push(rpmClamped);
     if (rpmHistory.length > 300) rpmHistory.shift();
 
     ctx.clearRect(0, 0, w, h);
 
+    // グリッド線（RPM）
     ctx.strokeStyle = "#e0e0e0";
     ctx.lineWidth = 1;
 
-    const rpmGrid = [10000, 20000, 30000, 40000, 50000, 60000];
+    const rpmGrid = [6000, 10000, 20000, 30000, 40000, 50000, 60000];
     rpmGrid.forEach(r => {
-        const y = h - ((r - 5000) / (60000 - 5000)) * h;
+        const y = h - ((r - MIN_RPM) / (MAX_RPM - MIN_RPM)) * h;
+
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(w, y);
         ctx.stroke();
 
-        ctx.fillStyle = "#666";
-        ctx.font = "12px sans-serif";
-        ctx.fillText(`${r} RPM`, 5, y - 2);
+        ctx.fillStyle = "#444";
+        ctx.font = "14px sans-serif";
+        ctx.fillText(`${r} RPM`, 5, y - 4);
     });
 
+    // 縦軸ライン
+    ctx.strokeStyle = "#888";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, h);
+    ctx.stroke();
+
+    // 時間グリッド
+    ctx.strokeStyle = "#e0e0e0";
+    ctx.lineWidth = 1;
     for (let x = w; x > 0; x -= w / 12) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -229,9 +247,11 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
 
         const sec = Math.round((w - x) / w * 60);
         ctx.fillStyle = "#666";
+        ctx.font = "12px sans-serif";
         ctx.fillText(`${sec}s`, x + 2, 12);
     }
 
+    // RPMライン
     ctx.strokeStyle = "#0077ff";
     ctx.lineWidth = 1 * devicePixelRatio;
     ctx.shadowColor = "rgba(0,120,255,0.35)";
@@ -241,11 +261,12 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
 
     for (let i = 0; i < rpmHistory.length; i++) {
         const x = w - (i * (w / 300));
-        const y = h - ((rpmHistory[i] - 5000) / (60000 - 5000)) * h;
+        const y = h - ((rpmHistory[i] - MIN_RPM) / (MAX_RPM - MIN_RPM)) * h;
 
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
+
     ctx.stroke();
 }
 // ====== グローバル変数 ======
@@ -281,10 +302,10 @@ const rpmHzCanvas = document.getElementById("rpmHzCanvas");
 const rpmHzOverlay = document.getElementById("rpmHzOverlay");
 const rpmFlowCanvas = document.getElementById("rpmFlowCanvas");
 
-// ====== 基本周波数抽出 ======
+// ====== ピーク検出 ======
 function detectPeaks(dataArray, fftSize, sampleRate) {
     const minBin = Math.floor(100 * fftSize / sampleRate);
-    const maxBin = Math.floor(1800 * fftSize / sampleRate);
+    const maxBin = Math.floor(4000 * fftSize / sampleRate);
     const peaks = [];
 
     for (let i = minBin + 1; i < maxBin - 1; i++) {
@@ -300,24 +321,34 @@ function detectPeaks(dataArray, fftSize, sampleRate) {
     return peaks;
 }
 
-function extractFundamental(peaks) {
-    if (peaks.length === 0) return 0;
+// ====== 倍音に負けない基本周波数抽出 ======
+function extractFundamentalStrong(peaks) {
+    if (peaks.length < 2) return 0;
 
-    peaks.sort((a, b) => b.value - a.value);
+    const freqs = peaks.map(p => p.freq);
+    const diffs = [];
 
-    const candidates = [];
-    peaks.forEach(p => {
-        const f = p.freq;
-        candidates.push(f);
-        candidates.push(f / 2);
-        candidates.push(f / 3);
-        candidates.push(f / 4);
+    for (let i = 0; i < freqs.length; i++) {
+        for (let j = i + 1; j < freqs.length; j++) {
+            const d = Math.abs(freqs[i] - freqs[j]);
+            if (d > 50 && d < 2000) diffs.push(d);
+        }
+    }
+
+    if (diffs.length === 0) return 0;
+
+    const clusters = {};
+    diffs.forEach(d => {
+        const key = Math.round(d / 10) * 10;
+        clusters[key] = (clusters[key] || 0) + 1;
     });
 
-    const valid = candidates.filter(f => f >= 100 && f <= 1800);
-    if (valid.length === 0) return 0;
+    const sorted = Object.entries(clusters).sort((a, b) => b[1] - a[1]);
+    const fundamental = Number(sorted[0][0]);
 
-    return Math.min(...valid);
+    if (fundamental < 300 || fundamental > 1500) return 0;
+
+    return fundamental;
 }
 
 // ====== 揺れ幅 ======
@@ -346,14 +377,23 @@ function mainLoop() {
     analyser16384.getFloatFrequencyData(data16384);
 
     const peaks4096 = detectPeaks(data4096, analyser4096.fftSize, sampleRate);
-    const fundamentalHz = extractFundamental(peaks4096);
-    if (fundamentalHz === 0) return;
+    const peaks16384 = detectPeaks(data16384, analyser16384.fftSize, sampleRate);
+
+    const fundamental4096 = extractFundamentalStrong(peaks4096);
+    const fundamental16384 = extractFundamentalStrong(peaks16384);
+
+    if (fundamental4096 === 0 && fundamental16384 === 0) return;
+
+    const fundamentalHz = fundamental4096 || fundamental16384;
 
     recordFundamental(fundamentalHz);
     const shakeHz = getFundamentalShake();
 
-    const rpm = fundamentalHz * 60;
-    const stableRpm = autoFilter(rpm, shakeHz);
+    const rpm4096 = fundamental4096 * 60;
+    const rpm16384 = fundamental16384 * 60;
+    const rpmBase = fundamentalHz * 60;
+
+    const stableRpm = autoFilter(rpmBase, shakeHz);
 
     if (stableRpm > maxRpm) maxRpm = stableRpm;
 
@@ -361,10 +401,10 @@ function mainLoop() {
     shakeHzEl.textContent = `${shakeHz.toFixed(1)} Hz`;
     maxRpmBoxEl.textContent = `MAX RPM: ${maxRpm.toFixed(0)}`;
 
-    rpm4096El.textContent = `RPM: ${stableRpm.toFixed(0)}`;
+    rpm4096El.textContent = `RPM: ${rpm4096 ? rpm4096.toFixed(0) : "--"}`;
     shake4096El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
 
-    rpm16384El.textContent = `RPM: ${stableRpm.toFixed(0)}`;
+    rpm16384El.textContent = `RPM: ${rpm16384 ? rpm16384.toFixed(0) : "--"}`;
     shake16384El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
 
     drawFFT(fft4096Canvas, fft4096Canvas.getContext("2d"), data4096);
