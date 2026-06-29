@@ -334,7 +334,38 @@ function detectPeaks(dataArray, fftSize, sampleRate) {
     return peaks;
 }
 
+// ====== 倍音に負けない基本周波数抽出（ミニ四駆向け） ======
+function extractFundamentalStrong(peaks) {
+    // ピーク1本でも基本周波数として扱う
+    if (peaks.length === 1) return peaks[0].freq;
+    if (peaks.length < 1) return 0;
 
+    const freqs = peaks.map(p => p.freq);
+    const diffs = [];
+
+    for (let i = 0; i < freqs.length; i++) {
+        for (let j = i + 1; j < freqs.length; j++) {
+            const d = Math.abs(freqs[i] - freqs[j]);
+            if (d > 50 && d < 4000) diffs.push(d);
+        }
+    }
+
+    if (diffs.length === 0) return 0;
+
+    const clusters = {};
+    diffs.forEach(d => {
+        const key = Math.round(d / 10) * 10;
+        clusters[key] = (clusters[key] || 0) + 1;
+    });
+
+    const sorted = Object.entries(clusters).sort((a, b) => b[1] - a[1]);
+    const fundamental = Number(sorted[0][0]);
+
+    // ミニ四駆の基本周波数レンジ
+    if (fundamental < 150 || fundamental > 2500) return 0;
+
+    return fundamental;
+}
 
 // ====== 揺れ幅 ======
 function recordFundamental(f) {
