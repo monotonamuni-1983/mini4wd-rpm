@@ -144,7 +144,7 @@ let analyserTime = null;
 let data4096 = null;
 let data16384 = null;
 let timeData = null;
-let sampleRate = 48000;
+let sampleRate = 400;
 let isRunning = false;
 let micStream = null;
 
@@ -182,7 +182,7 @@ function drawFFT(canvas, ctx, dataArray) {
     ctx.lineWidth = 1 * devicePixelRatio;
 
     const MIN_DB = 30;
-    const MAX_DB = 60;
+    const MAX_DB = 80;
 
     ctx.beginPath();
 
@@ -318,7 +318,7 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
 // ====== ピーク検出（100〜1800Hz） ======
 function detectPeaks(dataArray, fftSize, sampleRate) {
     const minBin = Math.floor(80 * fftSize / sampleRate);
-    const maxBin = Math.floor(1800 * fftSize / sampleRate);
+    const maxBin = Math.floor(2000 * fftSize / sampleRate);
     const peaks = [];
 
     for (let i = minBin + 1; i < maxBin - 1; i++) {
