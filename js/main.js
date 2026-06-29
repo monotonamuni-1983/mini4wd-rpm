@@ -74,7 +74,7 @@ function loop() {
     ctx.beginPath();
     ctx.strokeStyle = "#ff4fa3";
     for (let i = 0; i < waveCanvas.width; i++) {
-        const val = (dataArray[i * 10] + 100) * 2;
+        const val = (dataArray[i * 5] + 100) * 2;
         ctx.lineTo(i, waveCanvas.height - val);
     }
     ctx.stroke();
