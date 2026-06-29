@@ -171,7 +171,7 @@ const rpmHzCanvas = document.getElementById("rpmHzCanvas");
 const rpmHzOverlay = document.getElementById("rpmHzOverlay");
 const rpmFlowCanvas = document.getElementById("rpmFlowCanvas");
 
-// ====== FFT描画（細くハッキリ） ======
+// ====== FFT描画（30〜60dBレンジ） ======
 function drawFFT(canvas, ctx, dataArray) {
     const w = canvas.width;
     const h = canvas.height;
@@ -180,15 +180,25 @@ function drawFFT(canvas, ctx, dataArray) {
 
     ctx.strokeStyle = "#ff008c";
     ctx.lineWidth = 1 * devicePixelRatio;
-    ctx.shadowColor = "rgba(255,0,140,0.4)";
-    ctx.shadowBlur = 2;
+
+    const MIN_DB = 30;
+    const MAX_DB = 60;
 
     ctx.beginPath();
 
     for (let i = 0; i < dataArray.length; i++) {
+        let v = dataArray[i];
+
+        // dB値を 30〜60 にクリップ
+        if (v < MIN_DB) v = MIN_DB;
+        if (v > MAX_DB) v = MAX_DB;
+
+        // 30〜60 を 0〜1 に正規化
+        const norm = (v - MIN_DB) / (MAX_DB - MIN_DB);
+
+        // キャンバス座標に変換
         const x = (i / dataArray.length) * w;
-        const v = dataArray[i];
-        const y = h - ((v + 140) / 80) * h;
+        const y = h - norm * h;
 
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
@@ -305,10 +315,10 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
     ctx.stroke();
 }
 
-// ====== ピーク検出（80〜4000Hz） ======
+// ====== ピーク検出（100〜1800Hz） ======
 function detectPeaks(dataArray, fftSize, sampleRate) {
     const minBin = Math.floor(80 * fftSize / sampleRate);
-    const maxBin = Math.floor(4000 * fftSize / sampleRate);
+    const maxBin = Math.floor(1800 * fftSize / sampleRate);
     const peaks = [];
 
     for (let i = minBin + 1; i < maxBin - 1; i++) {
@@ -323,6 +333,7 @@ function detectPeaks(dataArray, fftSize, sampleRate) {
     }
     return peaks;
 }
+
 
 // ====== 倍音に負けない基本周波数抽出（ミニ四駆向け） ======
 function extractFundamentalStrong(peaks) {
