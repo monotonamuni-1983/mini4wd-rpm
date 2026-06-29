@@ -81,7 +81,7 @@ body {
 .speed-grid div {
   display: flex;
   flex-direction: column;
-  font-size: 1.4rem;
+  font-size: 1.1rem;
 }
 
 .rpm-grid span:last-child,
@@ -218,14 +218,15 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .history-filter select {
-  flex: 1 1 30%;
-  min-width: 100px;
+  flex: 1 1 30%;         /* 基本的に30%の幅（3つ並ぶ） */
+  min-width: 100px;      /* 狭くなりすぎないように制限 */
+  max-width: 100px;      /* ★もし全部同じ幅にしたいなら、ここを統一します */
   padding: 10px;
   border-radius: 10px;
   border: 1px solid #c7d6ff;
   background: #ffffff;
   font-size: 0.9rem;
-  box-sizing: border-box;
+  box-sizing: border-box; /* ★はみ出し防止 */
 }
 
 .history-header-fixed {
