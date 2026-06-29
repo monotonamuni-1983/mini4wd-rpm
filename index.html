@@ -48,14 +48,24 @@ async function startAudio() {
 
 // 放物線補間を用いた高精度ピーク検出
 function getPrecisePeak(data, fftSize, sampleRate) {
+    // 80Hz 〜 1000Hz に範囲を限定
+    const minBin = Math.floor(80 * fftSize / sampleRate);
+    const maxBin = Math.floor(1000 * fftSize / sampleRate);
+    
+    // 範囲外のデータを検索しないようにする
     let maxVal = -Infinity, maxIdx = -1;
-    for (let i = 1; i < data.length - 1; i++) {
+    
+    // minBin と maxBin の範囲内で最大値を探す
+    for (let i = minBin; i < maxBin; i++) {
         if (data[i] > maxVal) { maxVal = data[i]; maxIdx = i; }
     }
     
-    // 補間処理: y = ax^2 + bx + c の頂点を求める
+    // もしピークが見つからなかったら 0 を返す
+    if (maxIdx <= minBin || maxIdx >= maxBin - 1) return 0;
+
+    // 補間処理: 頂点の算出
     const y1 = data[maxIdx - 1], y2 = data[maxIdx], y3 = data[maxIdx + 1];
-    const offset = (y1 - y3) / (2 * (y1 - 2 * y2 + y3)); // 頂点のズレ（-0.5〜0.5）
+    const offset = (y1 - y3) / (2 * (y1 - 2 * y2 + y3));
     
     return ((maxIdx + offset) * sampleRate) / fftSize;
 }
