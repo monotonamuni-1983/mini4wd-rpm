@@ -78,7 +78,8 @@ function loop() {
         totalWeight += weight;
     });
 
-    document.getElementById("rpmFinal").textContent = (totalRpm / totalWeight).toFixed(1) + " RPM";
+    const finalRpm = Math.min((totalRpm / totalWeight), 60000);
+document.getElementById("rpmFinal").textContent = finalRpm.toFixed(1) + " RPM";
 }
 
 document.getElementById("startButton").addEventListener("click", () => {
