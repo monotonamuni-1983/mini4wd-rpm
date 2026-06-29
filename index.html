@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<h2>Mini4WD FFT Precision Analyzer ver100000</h2>
+<h2>Mini4WD FFT Precision Analyzer ver110000</h2>
 <button id="startButton">集音開始</button>
 <div id="status">ボタンを押してください</div>
 
@@ -24,13 +24,38 @@
     <div class="fft-box">FFT 8192<div id="rpm8192" class="rpm-text">--</div></div>
     <div class="fft-box">FFT 16384<div id="rpm16384" class="rpm-text">--</div></div>
 </div>
-<div class="fft-box" style="margin-top:20px;">★補正済み高精度 RPM<div id="rpmFinal" style="font-size:32px; color:blue; font-weight:bold;">--</div></div>
+
+<div class="fft-box" style="margin-top:20px;">
+    ★校正（キャリブレーション）スライダー ±10%<br>
+    <input type="range" id="calibSlider" min="0.90" max="1.10" step="0.001" value="1.000" style="width:80%;">
+    <div id="calibValue">1.000</div>
+</div>
+
+<div class="fft-box" style="margin-top:20px;">
+    ★補正済み高精度 RPM<div id="rpmFinal" style="font-size:32px; color:blue; font-weight:bold;">--</div>
+</div>
 
 <script>
 let audioCtx;
 const fftSizes = [2048, 4096, 8192, 16384];
 const analysers = {};
 const dataArrays = {};
+
+// --- 1. localStorage読み込み処理 ---
+const calibSlider = document.getElementById("calibSlider");
+const calibValueEl = document.getElementById("calibValue");
+
+const savedCalib = localStorage.getItem("mini4wdCalib");
+if (savedCalib) {
+    calibSlider.value = savedCalib;
+    calibValueEl.textContent = savedCalib;
+}
+
+calibSlider.addEventListener("input", () => {
+    const val = calibSlider.value;
+    calibValueEl.textContent = val;
+    localStorage.setItem("mini4wdCalib", val); // 即時保存
+});
 
 async function startAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -40,33 +65,24 @@ async function startAudio() {
     fftSizes.forEach(size => {
         analysers[size] = audioCtx.createAnalyser();
         analysers[size].fftSize = size;
-        dataArrays[size] = new Float32Array(analysers[size].frequencyBinCount);
+        dataArrays[size] = new Float32Array(analyser.frequencyBinCount); // 修正: analyser → analysers[size]
         source.connect(analysers[size]);
     });
     loop();
 }
 
-// 放物線補間を用いた高精度ピーク検出
+// 修正済みデータ配列取得の安定化
 function getPrecisePeak(data, fftSize, sampleRate) {
-    // 80Hz 〜 1000Hz に範囲を限定
     const minBin = Math.floor(80 * fftSize / sampleRate);
     const maxBin = Math.floor(1000 * fftSize / sampleRate);
-    
-    // 範囲外のデータを検索しないようにする
     let maxVal = -Infinity, maxIdx = -1;
-    
-    // minBin と maxBin の範囲内で最大値を探す
     for (let i = minBin; i < maxBin; i++) {
         if (data[i] > maxVal) { maxVal = data[i]; maxIdx = i; }
     }
-    
-    // もしピークが見つからなかったら 0 を返す
     if (maxIdx <= minBin || maxIdx >= maxBin - 1) return 0;
 
-    // 補間処理: 頂点の算出
     const y1 = data[maxIdx - 1], y2 = data[maxIdx], y3 = data[maxIdx + 1];
     const offset = (y1 - y3) / (2 * (y1 - 2 * y2 + y3));
-    
     return ((maxIdx + offset) * sampleRate) / fftSize;
 }
 
@@ -74,22 +90,24 @@ function loop() {
     requestAnimationFrame(loop);
     let totalRpm = 0;
     let totalWeight = 0;
+    
+    // --- 2. スライダー値の適用 ---
+    const factor = parseFloat(calibSlider.value);
 
     fftSizes.forEach((size, index) => {
         analysers[size].getFloatFrequencyData(dataArrays[size]);
         const freq = getPrecisePeak(dataArrays[size], size, audioCtx.sampleRate);
         const rpm = freq * 60;
         
-        document.getElementById(`rpm${size}`).textContent = rpm.toFixed(0);
+        document.getElementById(`rpm${size}`).textContent = (rpm * factor).toFixed(0);
 
-        // 高い解像度（大きいFFTサイズ）ほど重みを強くする（16384を基準）
         const weight = Math.pow(2, index); 
         totalRpm += rpm * weight;
         totalWeight += weight;
     });
 
-    const finalRpm = Math.min((totalRpm / totalWeight), 60000);
-document.getElementById("rpmFinal").textContent = finalRpm.toFixed(1) + " RPM";
+    const finalRpm = Math.min((totalRpm / totalWeight) * factor, 60000);
+    document.getElementById("rpmFinal").textContent = finalRpm.toFixed(1) + " RPM";
 }
 
 document.getElementById("startButton").addEventListener("click", () => {
