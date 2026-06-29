@@ -2,125 +2,76 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Mini4WD FFT Precision Analyzer</title>
+<title>Mini4WD Ultra Precision Analyzer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-    body { font-family: sans-serif; padding: 10px; background: #f9f9f9; }
-    .fft-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-    .fft-box { background: white; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .rpm-text { font-weight: bold; font-size: 18px; color: #ff008c; }
-    button { padding: 15px 30px; font-size: 20px; cursor: pointer; width: 100%; margin-bottom: 10px; }
-    
-    /* 補正済みRPMのフォント設定 */
-    #rpmFinal { font-size: 64px; color: blue; font-weight: bold; margin-top: 10px; }
+    body { font-family: sans-serif; padding: 20px; background: #f0f2f5; text-align: center; }
+    .display-box { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 20px auto; max-width: 400px; }
+    #rpmFinal { font-size: 72px; color: #007bff; font-weight: bold; margin-top: 10px; }
+    button { padding: 20px 40px; font-size: 20px; cursor: pointer; width: 100%; border-radius: 10px; border: none; background: #28a745; color: white; }
 </style>
 </head>
 <body>
 
-<h2>Mini4WD FFT Precision Analyzer ver9876543</h2>
-<button id="startButton">集音開始</button>
-<div id="status">ボタンを押してください</div>
+<h2>Ultra Precision RPM Meter ver1</h2>
+<button id="startButton">計測開始</button>
 
-<div class="fft-container">
-    <div class="fft-box">FFT 2048<div id="rpm2048" class="rpm-text">--</div></div>
-    <div class="fft-box">FFT 4096<div id="rpm4096" class="rpm-text">--</div></div>
-    <div class="fft-box">FFT 8192<div id="rpm8192" class="rpm-text">--</div></div>
-    <div class="fft-box">FFT 16384<div id="rpm16384" class="rpm-text">--</div></div>
-</div>
-
-<div class="fft-box" style="margin-top:20px;">
-    ★校正（キャリブレーション）スライダー ±10%<br>
-    <input type="range" id="calibSlider" min="0.90" max="1.10" step="0.001" value="1.000" style="width:80%; height:30px;">
-    <div id="calibValue" style="font-size: 20px; font-weight: bold;">1.000</div>
-</div>
-
-<div class="fft-box" style="margin-top:20px;">
-    ★補正済み高精度 RPM
+<div class="display-box">
+    <div>現在の回転数 (16384 FFT)</div>
     <div id="rpmFinal">-- RPM</div>
 </div>
 
 <script>
 let audioCtx;
-const fftSizes = [2048, 4096, 8192, 16384];
-const analysers = {};
-const dataArrays = {};
-
-// 更新頻度制御用
-let lastUpdateTime = 0;
-const UPDATE_INTERVAL = 100; // 0.1秒(100ms)間隔で表示を更新
-
-const calibSlider = document.getElementById("calibSlider");
-const calibValueEl = document.getElementById("calibValue");
-
-const savedCalib = localStorage.getItem("mini4wdCalib");
-if (savedCalib) {
-    calibSlider.value = savedCalib;
-    calibValueEl.textContent = savedCalib;
-}
-
-calibSlider.addEventListener("input", () => {
-    const val = calibSlider.value;
-    calibValueEl.textContent = val;
-    localStorage.setItem("mini4wdCalib", val);
-});
+let analyser;
+let dataArray;
+const FFT_SIZE = 16384; // 最高解像度に固定
 
 async function startAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const source = audioCtx.createMediaStreamSource(stream);
 
-    fftSizes.forEach(size => {
-        analysers[size] = audioCtx.createAnalyser();
-        analysers[size].fftSize = size;
-        dataArrays[size] = new Float32Array(analysers[size].frequencyBinCount);
-        source.connect(analysers[size]);
-    });
-    document.getElementById("status").textContent = "計測中...";
-    loop(0);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = FFT_SIZE;
+    dataArray = new Float32Array(analyser.frequencyBinCount);
+    source.connect(analyser);
+
+    loop();
 }
 
 function getPrecisePeak(data, fftSize, sampleRate) {
+    // 50Hz(3000RPM) ～ 1000Hz(60000RPM) の範囲を検索
     const minBin = Math.floor(50 * fftSize / sampleRate);
     const maxBin = Math.floor(1000 * fftSize / sampleRate);
+    
     let maxVal = -Infinity, maxIdx = -1;
     for (let i = minBin; i < maxBin; i++) {
-        if (data[i] > maxVal) { maxVal = data[i]; maxIdx = i; }
+        if (data[i] > maxVal) { 
+            maxVal = data[i]; 
+            maxIdx = i; 
+        }
     }
+    
+    // ピークが検出できない場合は0
     if (maxIdx <= minBin || maxIdx >= maxBin - 1) return 0;
 
+    // 放物線補間でさらに精度を上げる（小数点以下の周波数を推定）
     const y1 = data[maxIdx - 1], y2 = data[maxIdx], y3 = data[maxIdx + 1];
     const offset = (y1 - y3) / (2 * (y1 - 2 * y2 + y3));
     return ((maxIdx + offset) * sampleRate) / fftSize;
 }
 
-function loop(timestamp) {
+function loop() {
     requestAnimationFrame(loop);
-    let totalRpm = 0;
-    let totalWeight = 0;
-    const factor = parseFloat(calibSlider.value);
-    let validCount = 0;
-
-    fftSizes.forEach((size, index) => {
-        analysers[size].getFloatFrequencyData(dataArrays[size]);
-        const freq = getPrecisePeak(dataArrays[size], size, audioCtx.sampleRate);
+    
+    analyser.getFloatFrequencyData(dataArray);
+    const freq = getPrecisePeak(dataArray, FFT_SIZE, audioCtx.sampleRate);
+    
+    if (freq > 0) {
         const rpm = freq * 60;
-        
-        // 個別のFFT数値はリアルタイム表示
-        document.getElementById(`rpm${size}`).textContent = (rpm * factor).toFixed(0);
-
-        if (freq > 0) {
-            const weight = Math.pow(2, index); 
-            totalRpm += rpm * weight;
-            totalWeight += weight;
-            validCount++;
-        }
-    });
-
-    // 0.1秒経過したら補正済みRPMの表示を更新
-    if (validCount > 0 && (timestamp - lastUpdateTime) > UPDATE_INTERVAL) {
-        const targetRpm = Math.min((totalRpm / totalWeight) * factor, 60000);
-        document.getElementById("rpmFinal").textContent = Math.round(targetRpm) + " RPM";
-        lastUpdateTime = timestamp;
+        // 整数値として表示
+        document.getElementById("rpmFinal").textContent = Math.round(rpm) + " RPM";
     }
 }
 
