@@ -416,20 +416,21 @@ function mainLoop() {
     if (!isRunning) return;
     requestAnimationFrame(mainLoop);
 
+    // FFT取得
     analyser1024.getFloatFrequencyData(data1024);
     analyser16384.getFloatFrequencyData(data16384);
     analyserTime.getByteTimeDomainData(timeData);
 
-    // 無音なら RPM 完全停止
+    // 無音判定
     if (isSilentHighPrecision()) {
         rpmDisplayEl.textContent = "RPM: --";
         shakeHzEl.textContent = "-- Hz";
         maxRpmBoxEl.textContent = "MAX RPM: --";
 
-        rpm2048El.textContent = "RPM: --";   // ★ 2048枠はそのまま使う
+        rpm2048El.textContent = "RPM: --";   // 左枠（1024用）
         shake2048El.textContent = "揺れ幅：-- Hz";
 
-        rpm16384El.textContent = "RPM: --";
+        rpm16384El.textContent = "RPM: --";  // 右枠
         shake16384El.textContent = "揺れ幅：-- Hz";
 
         drawRpmFlow(
@@ -441,7 +442,7 @@ function mainLoop() {
         return;
     }
 
-    // FFT1024 / FFT16384 ピーク検出
+    // ピーク検出
     const peaks1024 = detectPeaks(data1024, analyser1024.fftSize, sampleRate);
     const peaks16384 = detectPeaks(data16384, analyser16384.fftSize, sampleRate);
 
@@ -471,14 +472,15 @@ function mainLoop() {
     shakeHzEl.textContent = `${shakeHz.toFixed(1)} Hz`;
     maxRpmBoxEl.textContent = `MAX RPM: ${maxRpm.toFixed(0)}`;
 
-    // ★ HTMLの枠は「rpm2048」「shake2048」をそのまま使う
+    // 左枠（FFT1024）
     rpm2048El.textContent = `RPM: ${rpm1024 ? rpm1024.toFixed(0) : "--"}`;
     shake2048El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
 
+    // 右枠（FFT16384）
     rpm16384El.textContent = `RPM: ${rpm16384 ? rpm16384.toFixed(0) : "--"}`;
     shake16384El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
 
-    // FFT描画（1024 → 2048枠に描画）
+    // FFT描画
     drawFFT(fft2048Canvas, fft2048Canvas.getContext("2d"), data1024);
     drawFFT(fft16384Canvas, fft16384Canvas.getContext("2d"), data16384);
 
@@ -499,7 +501,6 @@ function mainLoop() {
         rpmHistory
     );
 }
-
 
 // ====== マイク準備 ======
 async function prepareMic() {
