@@ -317,6 +317,31 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
 
     ctx.stroke();
 }
+// ====== 無音判定 ======
+function isSilentHighPrecision() {
+    analyserTime.getByteTimeDomainData(timeData);
+
+    // 振幅チェック（ミニ四駆は小さいので緩める）
+    let sum = 0;
+    for (let i = 0; i < timeData.length; i++) {
+        sum += Math.abs(timeData[i] - 128);
+    }
+    const amp = sum / timeData.length;
+    const amplitudeSilent = amp < 2;   // 音を拾いやすく
+
+    // FFTエネルギー（30〜80dBにクリップしているので条件を変更）
+    let peakCount = 0;
+    for (let i = 0; i < data2048.length; i++) {
+        if (data2048[i] > 35) peakCount++;   // 35dB以上の成分があれば音あり
+    }
+    const fftSilent = peakCount < 3;         // 3本未満なら無音
+
+    // ピーク数（1本でも音あり）
+    const peaks = detectPeaks(data2048, analyser2048.fftSize, sampleRate);
+    const peakSilent = peaks.length === 0;
+
+    return amplitudeSilent && fftSilent && peakSilent;
+}
 
 // ====== ピーク検出（100〜1800Hz） ======
 function detectPeaks(dataArray, fftSize, sampleRate) {
