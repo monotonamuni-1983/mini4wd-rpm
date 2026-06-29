@@ -1,212 +1,250 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mini4WD RPM Analyzer</title>
-  <link rel="stylesheet" href="css/style.css" />
-</head>
+<meta charset="UTF-8">
+<title>Mini4WD Ultra Precision Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body { font-family: sans-serif; padding: 20px; background: #f0f2f5; text-align: center; }
+    .display-box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 10px auto; max-width: 400px; }
+    #rpmFinal { font-size: 60px; color: #007bff; font-weight: bold; margin-top: 5px; }
+    button { padding: 15px 30px; font-size: 18px; cursor: pointer; width: 100%; border-radius: 10px; border: none; margin-bottom: 10px; }
+    #startButton { background: #28a745; color: white; }
+    #stopButton { background: #dc3545; color: white; }
+    #specCanvas { width: 100%; height: 120px; background: #000; border-radius: 8px; margin: 10px 0; }
+    .control-box { font-size: 14px; margin-bottom: 10px; }
 
+    /* ▼▼ レンジスライダー ▼▼ */
+    .range-slider {
+        position: relative;
+        width: 100%;
+        height: 40px;
+        margin: 20px 0;
+    }
+
+    .range-slider input[type="range"] {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        pointer-events: none;
+        -webkit-appearance: none;
+        background: none;
+    }
+
+    /* ツマミ（thumb）1.6倍 */
+    .range-slider input[type="range"]::-webkit-slider-thumb {
+        pointer-events: auto;
+        -webkit-appearance: none;
+        width: 28px;
+        height: 28px;
+        background: #007bff;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 4px rgba(0,0,0,0.3);
+    }
+
+    .range-slider input[type="range"]::-moz-range-thumb {
+        width: 28px;
+        height: 28px;
+        background: #007bff;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    /* 選択範囲のハイライトバー */
+    .slider-track {
+        position: absolute;
+        height: 6px;
+        background: #80c0ff;
+        border-radius: 3px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+</style>
+</head>
 <body>
 
-  <!-- ナビバー -->
-  <div class="nav-bar">
-    <div class="nav-left">
-      <button id="navMainBtn" class="nav-btn active" onclick="switchPage('main')">⏱</button>
-      <button id="navHistoryBtn" class="nav-btn" onclick="switchPage('history')">📋</button>
-      <button id="navSettingsBtn" class="nav-btn">⚙</button>
-    </div>
-  </div>
+<h2>Ultra Precision RPM Meter ver11111111111</h2>
 
-  <!-- メインページ -->
-  <div id="pageMain" class="view-page active">
-    <div class="grid-2">
+<button id="startButton">計測開始</button>
+<button id="stopButton">計測停止</button>
 
-      <!-- 左：リアルタイム計測 -->
-      <div class="section">
-        <h2>リアルタイム計測</h2>
+<canvas id="specCanvas"></canvas>
 
-        <div class="metrics-display">
-          <div class="metric-box metric-large">
-            リアルタイム回転数
-            <span id="rpmValue">0 RPM</span>
-          </div>
-
-          <div class="metric-box">
-            設定電圧
-            <span id="dispVolt">3.0 V</span>
-          </div>
-
-          <div class="metric-box">
-            設定ギヤ比
-            <span id="dispGear">3.5 :1</span>
-          </div>
-
-          <div class="metric-box">
-            タイヤ径
-            <span id="dispTire">25.0 mm</span>
-          </div>
-
-          <div class="metric-box">
-            走行速度
-            <span id="speedValue">0.0 km/h</span>
-          </div>
-
-          <div class="metric-box">
-            極数設定
-            <span id="dispPoles">1 P</span>
-          </div>
-
-          <div class="metric-box">
-            セッション平均
-            <span id="sessAvg">0</span>
-          </div>
-
-          <div class="metric-box">
-            最高回転数
-            <span id="sessMax">0</span>
-          </div>
-
-          <div class="metric-box">
-            最低回転数
-            <span id="sessMin">0</span>
-          </div>
-
-          <div class="metric-box">
-            計測フレーム
-            <span id="sessCount">0</span>
-          </div>
-        </div>
-
-        <div class="button-row">
-          <button id="startBtn">▶ 計測</button>
-          <button id="lockBtn" class="btn-secondary">🔒</button>
-          <button id="saveBtn" class="btn-secondary">💾 保存</button>
-          <button id="resetBtn" class="btn-danger">リセット</button>
-        </div>
-
-        <div class="spectrum-wrapper">
-          <canvas id="spectrumCanvas"></canvas>
-        </div>
-      </div>
-
-      <!-- 右：基本設定 -->
-      <div class="section">
-        <h2>基本設定</h2>
-
-        <div class="slider-group">
-
-          <div class="slider-item">
-            <label>電圧 <span id="valVolt">3.0V</span></label>
-            <input id="slideVolt" type="range" min="2.2" max="3.4" step="0.1" value="3.0" />
-          </div>
-
-          <div class="slider-item">
-            <label>ギヤ比 <span id="valGear">3.5:1</span></label>
-            <input id="slideGear" type="range" min="0" max="6" step="1" value="0" />
-          </div>
-
-          <div class="slider-item">
-            <label>タイヤ径 <span id="valTire">25.0mm</span></label>
-            <input id="slideTire" type="range" min="20" max="40" step="0.5" value="25" />
-          </div>
-
-          <div class="slider-item">
-            <label>極数</label>
-            <input id="inputPoles" type="number" min="1" max="4" value="1" />
-          </div>
-
-          <div class="slider-item">
-            <label>ノイズ閾値</label>
-            <input id="inputNoise" type="number" value="-120" />
-          </div>
-
-          <div class="slider-item">
-            <label>キャリブレーション</label>
-            <input id="inputCalib" type="number" step="0.01" value="1.00" />
-          </div>
-
-          <div class="slider-item">
-            <label>慣らし状態 <span id="valPhase">慣らし前</span></label>
-            <select id="inputPhase">
-              <option value="before">慣らし前</option>
-              <option value="after">慣らし後</option>
-            </select>
-          </div>
-
-        </div>
-
-        <h3>設定プリセット（8スロット）</h3>
-        <div id="presetGrid" class="preset-grid"></div>
-
-      </div>
+<!-- ▼▼ レンジスライダー（リアルタイム表示付き） ▼▼ -->
+<div class="control-box">
+    計測範囲 (RPM)
+    <div class="range-slider">
+        <input type="range" id="minRpm" min="5000" max="60000" value="20000">
+        <input type="range" id="maxRpm" min="5000" max="60000" value="40000">
+        <div class="slider-track"></div>
     </div>
 
-    <div class="section">
-      <h2>電圧・ギヤ比別 車輪回転数＆時速 比較表</h2>
-      <div class="table-responsive">
-        <table id="matrixTable"></table>
-      </div>
+    <!-- リアルタイム表示 -->
+    <div style="margin-top:10px; font-size:16px;">
+        最小RPM: <span id="minRpmLabel">20000</span>  
+        ／ 最大RPM: <span id="maxRpmLabel">40000</span>
     </div>
-  </div>
+</div>
 
-  <!-- 履歴ページ -->
-  <div id="pageHistory" class="view-page">
-    <div class="section">
-      <h2>履歴一覧</h2>
+<div class="display-box">
+    <div>現在の回転数 (16384 FFT)</div>
+    <div id="rpmFinal">-- RPM</div>
+</div>
 
-      <div class="filter-container">
-        <select id="filterName"></select>
-        <select id="filterVolt"></select>
-        <select id="filterGear"></select>
-        <select id="filterTire"></select>
-      </div>
+<script>
+let audioCtx = null, analyser = null, dataArray = null;
+let running = false;
 
-      <div class="table-responsive">
-        <table>
-          <thead>
-            <tr>
-              <th>日時</th>
-              <th>名前</th>
-              <th>MAX RPM</th>
-              <th>AVG RPM</th>
-              <th>Volt</th>
-              <th>Gear</th>
-              <th>Tire</th>
-              <th>Phase</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="historyTable"></tbody>
-        </table>
-      </div>
+const FFT_SIZE = 16384;
+const canvas = document.getElementById('specCanvas');
+const ctx = canvas.getContext('2d');
 
-      <button id="exportCSV" class="btn-secondary">CSV出力</button>
-      <button id="exportExcel" class="btn-secondary">Excel出力</button>
-      <button id="clearAllBtn" class="btn-danger">履歴全削除</button>
-　　　<div class="section" style="height: 260px;">
-    <h2>履歴グラフ</h2>
-    <canvas id="historyChart"></canvas>
-    </div>
-  </div>
+/* ▼▼ レンジスライダー制御 ▼▼ */
+const minSlider = document.getElementById("minRpm");
+const maxSlider = document.getElementById("maxRpm");
+const track = document.querySelector(".slider-track");
 
-  <!-- 設定モーダル -->
-  <div id="settingsModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>設定</h3>
+const minLabel = document.getElementById("minRpmLabel");
+const maxLabel = document.getElementById("maxRpmLabel");
 
-      <div class="modal-item">
-        <label>ノイズ閾値</label>
-        <input id="inputNoise" type="number" value="-120" />
-      </div>
+function updateLabels() {
+    minLabel.textContent = minSlider.value;
+    maxLabel.textContent = maxSlider.value;
+}
 
-      <button id="modalCloseBtn" class="btn-secondary">閉じる</button>
-    </div>
-  </div>
+function updateTrack() {
+    const minVal = parseInt(minSlider.value);
+    const maxVal = parseInt(maxSlider.value);
 
-  <script src="js/main.js"></script>
-  <script src="js/preset.js"></script>
-  <script src="js/ui.js"></script>
+    const minPercent = (minVal - minSlider.min) / (minSlider.max - minSlider.min) * 100;
+    const maxPercent = (maxVal - maxSlider.min) / (maxSlider.max - maxSlider.min) * 100;
 
+    track.style.left = minPercent + "%";
+    track.style.width = (maxPercent - minPercent) + "%";
+}
+
+minSlider.addEventListener("input", () => {
+    if (parseInt(minSlider.value) > parseInt(maxSlider.value)) {
+        minSlider.value = maxSlider.value;
+    }
+    updateTrack();
+    updateLabels();
+});
+
+maxSlider.addEventListener("input", () => {
+    if (parseInt(maxSlider.value) < parseInt(minSlider.value)) {
+        maxSlider.value = minSlider.value;
+    }
+    updateTrack();
+    updateLabels();
+});
+
+updateTrack();
+updateLabels();
+/* ▲▲ レンジスライダー制御 ▲▲ */
+
+async function startAudio() {
+    if (running) return;
+    running = true;
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = FFT_SIZE;
+    dataArray = new Float32Array(analyser.frequencyBinCount);
+
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+
+    loop();
+}
+
+function stopAudio() {
+    running = false;
+    if (audioCtx) audioCtx.suspend();
+    document.getElementById("rpmFinal").textContent = "-- RPM";
+function getPrecisePeak(data, fftSize, sampleRate) {
+  // ① スライダーから「見たいRPM帯域」を取得
+  const minRpm = parseInt(document.getElementById("minSlider").value, 10);
+  const maxRpm = parseInt(document.getElementById("maxSlider").value, 10);
+
+  // ② RPM → 周波数(Hz) に変換
+  const minFreq = minRpm / 60;
+  const maxFreq = maxRpm / 60;
+
+  // ③ 周波数 → FFT bin に変換
+  const minBin = Math.floor(minFreq * fftSize / sampleRate);
+  const maxBin = Math.floor(maxFreq * fftSize / sampleRate);
+
+  // 安全ガード
+  const len = data.length;
+  const from = Math.max(1, Math.min(minBin, len - 2));
+  const to   = Math.max(2, Math.min(maxBin, len - 1));
+
+  // ④ 指定帯域内で最大値を探す
+  let maxVal = -Infinity;
+  let maxIdx = -1;
+  for (let i = from; i <= to; i++) {
+    if (data[i] > maxVal) {
+      maxVal = data[i];
+      maxIdx = i;
+    }
+  }
+
+  if (maxIdx <= from || maxIdx >= to) return 0;
+
+  // ⑤ 3点補間（Quadratic Interpolation）
+  const y1 = data[maxIdx - 1];
+  const y2 = data[maxIdx];
+  const y3 = data[maxIdx + 1];
+
+  const denom = (y1 - 2 * y2 + y3);
+  if (denom === 0) return (maxIdx * sampleRate) / fftSize;
+
+  const offset = (y1 - y3) / (2 * denom);
+  const peakBin = maxIdx + offset;
+
+  // ⑥ bin → 周波数(Hz) に戻す
+  const peakFreq = (peakBin * sampleRate) / fftSize;
+  return peakFreq;
+}
+
+function loop() {
+  if (!measuring) return;
+  requestAnimationFrame(loop);
+
+  analyser.getFloatFrequencyData(dataArray);
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#0f0';
+    ctx.beginPath();
+    for (let i = 0; i < canvas.width; i++) {
+        const val = (dataArray[i * 10] + 100) * 2;
+        ctx.lineTo(i, canvas.height - val);
+    }
+    ctx.stroke();
+
+    const peakFreq = getPrecisePeak(dataArray, analyser.fftSize, audioCtx.sampleRate);
+  if (peakFreq > 0) {
+    const rawRpm = peakFreq * 60;
+    updateAppValues(rawRpm);
+  }
+}
+
+document.getElementById("startButton").addEventListener("click", () => {
+    if (!audioCtx || audioCtx.state === "suspended") {
+        startAudio();
+    } else {
+        audioCtx.resume();
+        running = true;
+        loop();
+    }
+});
+
+document.getElementById("stopButton").addEventListener("click", stopAudio);
+</script>
 </body>
 </html>
