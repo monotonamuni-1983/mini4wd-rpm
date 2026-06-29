@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Mini4WD Ultra Precision Analyzer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body { font-family: sans-serif; padding: 20px; background: #f0f2f5; text-align: center; }
+    .display-box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 10px auto; max-width: 400px; }
+    #rpmFinal { font-size: 60px; color: #007bff; font-weight: bold; margin-top: 5px; }
+    button { padding: 15px 30px; font-size: 18px; cursor: pointer; width: 100%; border-radius: 10px; border: none; background: #28a745; color: white; margin-bottom: 10px; }
+    /* 追加：スペクトラム用スタイル */
+    #specCanvas { width: 100%; height: 120px; background: #000; border-radius: 8px; margin: 10px 0; }
+    .control-box { font-size: 14px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<h2>Ultra Precision RPM Meter ver1</h2>
+<button id="startButton">計測開始</button>
+
+<canvas id="specCanvas"></canvas>
+<div class="control-box">
+    計測範囲 (RPM): 
+    <input type="number" id="minRpm" value="20000" style="width:60px;"> ～ 
+    <input type="number" id="maxRpm" value="40000" style="width:60px;">
+</div>
+
+<div class="display-box">
+    <div>現在の回転数 (16384 FFT)</div>
+    <div id="rpmFinal">-- RPM</div>
+</div>
+
+<script>
+let audioCtx, analyser, dataArray;
+const FFT_SIZE = 16384;
+const canvas = document.getElementById('specCanvas');
+const ctx = canvas.getContext('2d');
+
+async function startAudio() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = FFT_SIZE;
+    dataArray = new Float32Array(analyser.frequencyBinCount);
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+    loop();
+}
+
+function getPrecisePeak(data, fftSize, sampleRate) {
+    // UIからの範囲を取得（RPMをHzに変換）
+    const minFreq = parseInt(document.getElementById('minRpm').value) / 60;
+    const maxFreq = parseInt(document.getElementById('maxRpm').value) / 60;
+    const minBin = Math.floor(minFreq * fftSize / sampleRate);
+    const maxBin = Math.floor(maxFreq * fftSize / sampleRate);
+    
+    let maxVal = -Infinity, maxIdx = -1;
+    for (let i = minBin; i < maxBin; i++) {
+        if (data[i] > maxVal) { maxVal = data[i]; maxIdx = i; }
+    }
+    if (maxIdx <= minBin || maxIdx >= maxBin - 1) return 0;
+
+    const y1 = data[maxIdx - 1], y2 = data[maxIdx], y3 = data[maxIdx + 1];
+    const offset = (y1 - y3) / (2 * (y1 - 2 * y2 + y3));
+    return ((maxIdx + offset) * sampleRate) / fftSize;
+}
+
+function loop() {
+    requestAnimationFrame(loop);
+    analyser.getFloatFrequencyData(dataArray);
+
+    // スペクトラム描画
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#0f0'; ctx.beginPath();
+    for (let i = 0; i < canvas.width; i++) {
+        const val = (dataArray[i * 10] + 100) * 2;
+        ctx.lineTo(i, canvas.height - val);
+    }
+    ctx.stroke();
+
+    // RPM計算
+    const freq = getPrecisePeak(dataArray, FFT_SIZE, audioCtx.sampleRate);
+    if (freq > 0) {
+        document.getElementById("rpmFinal").textContent = Math.round(freq * 60 * 0.9924) + " RPM";
+    }
+}
+
+document.getElementById("startButton").addEventListener("click", () => {
+    if (!audioCtx) startAudio();
+    else audioCtx.resume();
+});
+</script>
+</body>
+</html>
