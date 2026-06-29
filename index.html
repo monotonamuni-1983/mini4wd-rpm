@@ -375,80 +375,38 @@ function mainLoop() {
 
     analyser4096.getFloatFrequencyData(data4096);
     analyser16384.getFloatFrequencyData(data16384);
-    analyserTime.getByteTimeDomainData(timeData);
 
-    // ====== 無音判定（ミニ四駆専用） ======
-    if (isSilentHighPrecision()) {
-
-        // RPM を完全停止
-        rpmDisplayEl.textContent = "RPM: --";
-        shakeHzEl.textContent = "-- Hz";
-        rpm4096El.textContent = "RPM: --";
-        shake4096El.textContent = "揺れ幅：-- Hz";
-        rpm16384El.textContent = "RPM: --";
-        shake16384El.textContent = "揺れ幅：-- Hz";
-
-        // グラフも停止（最後の値を維持）
-        drawRpmFlow(
-            rpmFlowCanvas,
-            rpmFlowCanvas.getContext("2d"),
-            6000,
-            rpmHistory
-        );
-
-        return; // ★ RPM計算を完全にブロック
-    }
-
-    // ====== ピーク検出 ======
     const peaks4096 = detectPeaks(data4096, analyser4096.fftSize, sampleRate);
     const peaks16384 = detectPeaks(data16384, analyser16384.fftSize, sampleRate);
 
-    // ====== モーター音が無い場合も RPM を止める ======
-    if (!isMotorSound(peaks4096) && !isMotorSound(peaks16384)) {
-
-        rpmDisplayEl.textContent = "RPM: --";
-        shakeHzEl.textContent = "-- Hz";
-
-        drawRpmFlow(
-            rpmFlowCanvas,
-            rpmFlowCanvas.getContext("2d"),
-            6000,
-            rpmHistory
-        );
-
-        return; // ★ ここでも RPM計算をブロック
-    }
-
-    // ====== 基本周波数抽出 ======
     const fundamental4096 = extractFundamentalStrong(peaks4096);
     const fundamental16384 = extractFundamentalStrong(peaks16384);
 
-    const fundamentalHz = fundamental4096 || fundamental16384 || 0;
+    if (fundamental4096 === 0 && fundamental16384 === 0) return;
 
-    if (fundamentalHz === 0) return; // ★ 0Hzなら RPM計算しない
+    const fundamentalHz = fundamental4096 || fundamental16384;
 
-    // ====== 揺れ幅 ======
     recordFundamental(fundamentalHz);
     const shakeHz = getFundamentalShake();
 
-    // ====== RPM計算 ======
+    const rpm4096 = fundamental4096 * 60;
+    const rpm16384 = fundamental16384 * 60;
     const rpmBase = fundamentalHz * 60;
+
     const stableRpm = autoFilter(rpmBase, shakeHz);
 
     if (stableRpm > maxRpm) maxRpm = stableRpm;
 
-    // ====== UI更新 ======
     rpmDisplayEl.textContent = `RPM: ${stableRpm.toFixed(0)}`;
     shakeHzEl.textContent = `${shakeHz.toFixed(1)} Hz`;
     maxRpmBoxEl.textContent = `MAX RPM: ${maxRpm.toFixed(0)}`;
 
-    rpm4096El.textContent = `RPM: ${fundamental4096 ? (fundamental4096 * 60).toFixed(0) : "--"}`;
+    rpm4096El.textContent = `RPM: ${rpm4096 ? rpm4096.toFixed(0) : "--"}`;
     shake4096El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
 
-    rpm16384El.textContent = `RPM: ${fundamental16384 ? (fundamental16384 * 60).toFixed(0) : "--"}`;
+    rpm16384El.textContent = `RPM: ${rpm16384 ? rpm16384.toFixed(0) : "--"}`;
     shake16384El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
 
-    // ====== グラフ描画 ======
     drawFFT(fft4096Canvas, fft4096Canvas.getContext("2d"), data4096);
     drawFFT(fft16384Canvas, fft16384Canvas.getContext("2d"), data16384);
     drawRpmHzGraph(
