@@ -9,7 +9,10 @@
     .fft-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
     .fft-box { background: white; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .rpm-text { font-weight: bold; font-size: 18px; color: #ff008c; }
-    button { padding: 15px 30px; font-size: 18px; cursor: pointer; width: 100%; margin-bottom: 10px; }
+    button { padding: 15px 30px; font-size: 20px; cursor: pointer; width: 100%; margin-bottom: 10px; }
+    
+    /* 補正済みRPMのフォント設定 */
+    #rpmFinal { font-size: 64px; color: blue; font-weight: bold; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -27,12 +30,13 @@
 
 <div class="fft-box" style="margin-top:20px;">
     ★校正（キャリブレーション）スライダー ±10%<br>
-    <input type="range" id="calibSlider" min="0.90" max="1.10" step="0.001" value="1.000" style="width:80%;">
-    <div id="calibValue">1.000</div>
+    <input type="range" id="calibSlider" min="0.90" max="1.10" step="0.001" value="1.000" style="width:80%; height:30px;">
+    <div id="calibValue" style="font-size: 20px; font-weight: bold;">1.000</div>
 </div>
 
 <div class="fft-box" style="margin-top:20px;">
-    ★補正済み高精度 RPM<div id="rpmFinal" style="font-size:32px; color:blue; font-weight:bold;">--</div>
+    ★補正済み高精度 RPM
+    <div id="rpmFinal">-- RPM</div>
 </div>
 
 <script>
@@ -41,9 +45,8 @@ const fftSizes = [2048, 4096, 8192, 16384];
 const analysers = {};
 const dataArrays = {};
 let smoothedRpm = 0;
-const SMOOTHING_FACTOR = 0.1; // 数値の更新を滑らかにする係数
+const SMOOTHING_FACTOR = 0.1; 
 
-// --- localStorageの初期化・読み込み ---
 const calibSlider = document.getElementById("calibSlider");
 const calibValueEl = document.getElementById("calibValue");
 
@@ -106,7 +109,6 @@ function loop() {
     });
 
     const targetRpm = Math.min((totalRpm / totalWeight) * factor, 60000);
-    // 移動平均フィルターで数値を安定させる
     smoothedRpm = smoothedRpm + (targetRpm - smoothedRpm) * SMOOTHING_FACTOR;
     
     document.getElementById("rpmFinal").textContent = smoothedRpm.toFixed(1) + " RPM";
