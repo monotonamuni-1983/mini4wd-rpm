@@ -97,7 +97,7 @@ canvas {
 
 <body>
 
-<h2>Mini4WD RPM Analyzer ver5 – FFT2048 / FFT16384 比較</h2>
+<h2>Mini4WD RPM Analyzer ver6 – FFT2048 / FFT16384 比較</h2>
 
 <div id="status">マイク許可待ち…</div>
 <button id="startButton" disabled>集音開始</button>
@@ -139,7 +139,7 @@ canvas {
 // ====== グローバル変数 ======
 let audioCtx = null;
 let analyser1024 = null;
-let analyser16384 = null;
+let  = null;
 let analyserTime = null;
 let data1024 = null;
 let data16384 = null;
@@ -416,7 +416,7 @@ function mainLoop() {
 
     // FFT取得
     analyser1024.getFloatFrequencyData(data1024);
-    analyser16384.getFloatFrequencyData(data16384);
+    .getFloatFrequencyData(data16384);
     analyserTime.getByteTimeDomainData(timeData);
 
     // 無音判定
@@ -525,7 +525,7 @@ async function startAudio() {
 
 
     analyser16384 = audioCtx.createAnalyser();
-    analyser16384.fftSize = 16384;
+    analyser16384.fftSize = 4096; // ここを4096に変更
     data16384 = new Float32Array(analyser16384.frequencyBinCount);
 
     analyserTime = audioCtx.createAnalyser();
