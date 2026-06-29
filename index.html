@@ -135,6 +135,7 @@ canvas {
 
 <h3>RPM 時系列フロー（右端0s / 左端60s）</h3>
 <canvas id="rpmFlowCanvas"></canvas>
+
 <script>
 // ====== FFT描画（細くハッキリ） ======
 function drawFFT(canvas, ctx, dataArray) {
@@ -269,12 +270,15 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
 
     ctx.stroke();
 }
+
 // ====== グローバル変数 ======
 let audioCtx = null;
 let analyser4096 = null;
 let analyser16384 = null;
+let analyserTime = null;
 let data4096 = null;
 let data16384 = null;
+let timeData = null;
 let sampleRate = 48000;
 let isRunning = false;
 let micStream = null;
@@ -368,6 +372,47 @@ function autoFilter(rpm, shakeHz) {
     return filteredRpm;
 }
 
+// ====== 高精度無音判定 ======
+function isSilentHighPrecision() {
+    analyserTime.getByteTimeDomainData(timeData);
+    let sum = 0;
+    for (let i = 0; i < timeData.length; i++) {
+        sum += Math.abs(timeData[i] - 128);
+    }
+    const amp = sum / timeData.length;
+    const amplitudeSilent = amp < 4;
+
+    let energy = 0;
+    for (let i = 0; i < data4096.length; i++) {
+        energy += data4096[i];
+    }
+    const fftSilent = energy < -20000;
+
+    const shake = getFundamentalShake();
+    const shakeSilent = shake > 150;
+
+    return amplitudeSilent && fftSilent && shakeSilent;
+}
+
+// ====== モーター音自動検出 ======
+function isMotorSound(peaks) {
+    if (peaks.length < 2) return false;
+
+    const fundamental = extractFundamentalStrong(peaks);
+    if (fundamental < 300 || fundamental > 1500) return false;
+
+    const shake = getFundamentalShake();
+    if (shake > 120) return false;
+
+    let energy = 0;
+    for (let i = 0; i < data4096.length; i++) {
+        energy += data4096[i];
+    }
+    if (energy < -15000) return false;
+
+    return true;
+}
+
 // ====== メインループ ======
 function mainLoop() {
     if (!isRunning) return;
@@ -378,6 +423,34 @@ function mainLoop() {
 
     const peaks4096 = detectPeaks(data4096, analyser4096.fftSize, sampleRate);
     const peaks16384 = detectPeaks(data16384, analyser16384.fftSize, sampleRate);
+
+    if (isSilentHighPrecision()) {
+        rpmDisplayEl.textContent = "RPM: --";
+        shakeHzEl.textContent = "-- Hz";
+
+        rpm4096El.textContent = "RPM: --";
+        shake4096El.textContent = "揺れ幅：-- Hz";
+
+        rpm16384El.textContent = "RPM: --";
+        shake16384El.textContent = "揺れ幅：-- Hz";
+
+        drawRpmFlow(rpmFlowCanvas, rpmFlowCanvas.getContext("2d"), 6000, rpmHistory);
+        return;
+    }
+
+    if (!isMotorSound(peaks4096)) {
+        rpmDisplayEl.textContent = "RPM: --";
+        shakeHzEl.textContent = "-- Hz";
+
+        rpm4096El.textContent = "RPM: --";
+        shake4096El.textContent = "揺れ幅：-- Hz";
+
+        rpm16384El.textContent = "RPM: --";
+        shake16384El.textContent = "揺れ幅：-- Hz";
+
+        drawRpmFlow(rpmFlowCanvas, rpmFlowCanvas.getContext("2d"), 6000, rpmHistory);
+        return;
+    }
 
     const fundamental4096 = extractFundamentalStrong(peaks4096);
     const fundamental16384 = extractFundamentalStrong(peaks16384);
@@ -451,9 +524,14 @@ async function startAudio() {
     analyser16384.fftSize = 16384;
     data16384 = new Float32Array(analyser16384.frequencyBinCount);
 
+    analyserTime = audioCtx.createAnalyser();
+    analyserTime.fftSize = 2048;
+    timeData = new Uint8Array(analyserTime.fftSize);
+
     const source = audioCtx.createMediaStreamSource(micStream);
     source.connect(analyser4096);
     source.connect(analyser16384);
+    source.connect(analyserTime);
 
     fundamentalHistory = [];
     rpmHistory = [];
