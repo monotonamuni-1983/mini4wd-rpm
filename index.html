@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Mini4WD RPM Analyzer – FFT4096 vs 16384</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
 body {
     font-family: sans-serif;
@@ -150,16 +149,13 @@ function drawFFT(canvas, ctx, dataArray) {
     ctx.shadowBlur = 2;
 
     ctx.beginPath();
-
     for (let i = 0; i < dataArray.length; i++) {
         const x = (i / dataArray.length) * w;
         const v = dataArray[i];
         const y = h - ((v + 140) / 80) * h;
-
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
-
     ctx.stroke();
 }
 
@@ -218,12 +214,10 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
     const rpmGrid = [6000, 10000, 20000, 30000, 40000, 50000, 60000];
     rpmGrid.forEach(r => {
         const y = h - ((r - MIN_RPM) / (MAX_RPM - MIN_RPM)) * h;
-
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(w, y);
         ctx.stroke();
-
         ctx.fillStyle = "#444";
         ctx.font = "14px sans-serif";
         ctx.fillText(`${r} RPM`, 5, y - 4);
@@ -245,7 +239,6 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
         ctx.moveTo(x, 0);
         ctx.lineTo(x, h);
         ctx.stroke();
-
         const sec = Math.round((w - x) / w * 60);
         ctx.fillStyle = "#666";
         ctx.font = "12px sans-serif";
@@ -259,15 +252,12 @@ function drawRpmFlow(canvas, ctx, rpm, rpmHistory) {
     ctx.shadowBlur = 2;
 
     ctx.beginPath();
-
     for (let i = 0; i < rpmHistory.length; i++) {
         const x = w - (i * (w / 300));
         const y = h - ((rpmHistory[i] - MIN_RPM) / (MAX_RPM - MIN_RPM)) * h;
-
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
-
     ctx.stroke();
 }
 
@@ -309,9 +299,8 @@ const rpmFlowCanvas = document.getElementById("rpmFlowCanvas");
 // ====== ピーク検出 ======
 function detectPeaks(dataArray, fftSize, sampleRate) {
     const minBin = Math.floor(100 * fftSize / sampleRate);
-    const maxBin = Math.floor(4000 * fftSize / sampleRate);
+    const maxBin = Math.floor(1800 * fftSize / sampleRate);
     const peaks = [];
-
     for (let i = minBin + 1; i < maxBin - 1; i++) {
         if (dataArray[i] > dataArray[i - 1] &&
             dataArray[i] > dataArray[i + 1]) {
@@ -327,18 +316,17 @@ function detectPeaks(dataArray, fftSize, sampleRate) {
 
 // ====== 倍音に負けない基本周波数抽出 ======
 function extractFundamentalStrong(peaks) {
+    if (peaks.length === 1) return peaks[0].freq;
     if (peaks.length < 2) return 0;
 
     const freqs = peaks.map(p => p.freq);
     const diffs = [];
-
     for (let i = 0; i < freqs.length; i++) {
         for (let j = i + 1; j < freqs.length; j++) {
             const d = Math.abs(freqs[i] - freqs[j]);
             if (d > 50 && d < 2000) diffs.push(d);
         }
     }
-
     if (diffs.length === 0) return 0;
 
     const clusters = {};
@@ -349,9 +337,7 @@ function extractFundamentalStrong(peaks) {
 
     const sorted = Object.entries(clusters).sort((a, b) => b[1] - a[1]);
     const fundamental = Number(sorted[0][0]);
-
     if (fundamental < 300 || fundamental > 1500) return 0;
-
     return fundamental;
 }
 
@@ -396,7 +382,7 @@ function isSilentHighPrecision() {
 
 // ====== モーター音自動検出 ======
 function isMotorSound(peaks) {
-    if (peaks.length < 2) return false;
+    if (peaks.length < 1) return false;
 
     const fundamental = extractFundamentalStrong(peaks);
     if (fundamental < 300 || fundamental > 1500) return false;
@@ -427,13 +413,10 @@ function mainLoop() {
     if (isSilentHighPrecision()) {
         rpmDisplayEl.textContent = "RPM: --";
         shakeHzEl.textContent = "-- Hz";
-
         rpm4096El.textContent = "RPM: --";
         shake4096El.textContent = "揺れ幅：-- Hz";
-
         rpm16384El.textContent = "RPM: --";
         shake16384El.textContent = "揺れ幅：-- Hz";
-
         drawRpmFlow(rpmFlowCanvas, rpmFlowCanvas.getContext("2d"), 6000, rpmHistory);
         return;
     }
@@ -441,13 +424,10 @@ function mainLoop() {
     if (!isMotorSound(peaks4096)) {
         rpmDisplayEl.textContent = "RPM: --";
         shakeHzEl.textContent = "-- Hz";
-
         rpm4096El.textContent = "RPM: --";
         shake4096El.textContent = "揺れ幅：-- Hz";
-
         rpm16384El.textContent = "RPM: --";
         shake16384El.textContent = "揺れ幅：-- Hz";
-
         drawRpmFlow(rpmFlowCanvas, rpmFlowCanvas.getContext("2d"), 6000, rpmHistory);
         return;
     }
@@ -455,9 +435,8 @@ function mainLoop() {
     const fundamental4096 = extractFundamentalStrong(peaks4096);
     const fundamental16384 = extractFundamentalStrong(peaks16384);
 
-    if (fundamental4096 === 0 && fundamental16384 === 0) return;
-
-    const fundamentalHz = fundamental4096 || fundamental16384;
+    let fundamentalHz = fundamental4096 || fundamental16384 || 0;
+    if (!fundamentalHz) fundamentalHz = 0;
 
     recordFundamental(fundamentalHz);
     const shakeHz = getFundamentalShake();
@@ -465,7 +444,6 @@ function mainLoop() {
     const rpm4096 = fundamental4096 * 60;
     const rpm16384 = fundamental16384 * 60;
     const rpmBase = fundamentalHz * 60;
-
     const stableRpm = autoFilter(rpmBase, shakeHz);
 
     if (stableRpm > maxRpm) maxRpm = stableRpm;
@@ -511,7 +489,9 @@ async function prepareMic() {
 
 // ====== 集音開始 ======
 async function startAudio() {
-    if (!micStream) return;
+    if (!micStream) {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
 
     audioCtx = new AudioContext();
     sampleRate = audioCtx.sampleRate;
@@ -558,7 +538,7 @@ function stopAudio() {
         micStream = null;
     }
     if (audioCtx) {
-        audioCtx.close();
+        try { audioCtx.close(); } catch(e) {}
         audioCtx = null;
     }
 }
