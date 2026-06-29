@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Mini4WD RPM Analyzer – FFT4096 vs 16384</title>
+<title>Mini4WD RPM Analyzer – FFT2048 vs 16384</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -49,7 +49,7 @@ canvas {
     margin-top: 10px;
 }
 
-#fft4096Canvas, #fft16384Canvas { height: 200px; }
+#fft2048Canvas, #fft16384Canvas { height: 200px; }
 #rpmHzCanvas, #rpmHzOverlay { height: 200px; }
 #rpmFlowCanvas { height: 150px; }
 
@@ -97,7 +97,7 @@ canvas {
 
 <body>
 
-<h2>Mini4WD RPM Analyzer – FFT4096 / FFT16384 比較</h2>
+<h2>Mini4WD RPM Analyzer – FFT2048 / FFT16384 比較</h2>
 
 <div id="status">マイク許可待ち…</div>
 <button id="startButton" disabled>集音開始</button>
@@ -107,15 +107,15 @@ canvas {
 <div>揺れ幅：<span id="shakeHz">-- Hz</span></div>
 <div id="maxRpmBox">MAX RPM: --</div>
 
-<h3>FFT4096 / FFT16384 スペクトラム比較</h3>
+<h3>FFT2048 / FFT16384 スペクトラム比較</h3>
 
 <div class="fft-row">
   <div class="fft-box">
     <div class="fft-info">
-      <div id="rpm4096">RPM: --</div>
-      <div id="shake4096">揺れ幅：-- Hz</div>
+      <div id="rpm2048">RPM: --</div>
+      <div id="shake2048">揺れ幅：-- Hz</div>
     </div>
-    <canvas id="fft4096Canvas"></canvas>
+    <canvas id="fft2048Canvas"></canvas>
   </div>
 
   <div class="fft-box">
@@ -138,10 +138,10 @@ canvas {
 <script>
 // ====== グローバル変数 ======
 let audioCtx = null;
-let analyser4096 = null;
+let analyser2048 = null;
 let analyser16384 = null;
 let analyserTime = null;
-let data4096 = null;
+let data2048 = null;
 let data16384 = null;
 let timeData = null;
 let sampleRate = 400;
@@ -160,12 +160,12 @@ const rpmDisplayEl = document.getElementById("rpmDisplay");
 const shakeHzEl = document.getElementById("shakeHz");
 const maxRpmBoxEl = document.getElementById("maxRpmBox");
 
-const rpm4096El = document.getElementById("rpm4096");
-const shake4096El = document.getElementById("shake4096");
+const rpm2048El = document.getElementById("rpm2048");
+const shake2048El = document.getElementById("shake2048");
 const rpm16384El = document.getElementById("rpm16384");
 const shake16384El = document.getElementById("shake16384");
 
-const fft4096Canvas = document.getElementById("fft4096Canvas");
+const fft2048Canvas = document.getElementById("fft2048Canvas");
 const fft16384Canvas = document.getElementById("fft16384Canvas");
 const rpmHzCanvas = document.getElementById("rpmHzCanvas");
 const rpmHzOverlay = document.getElementById("rpmHzOverlay");
@@ -335,38 +335,6 @@ function detectPeaks(dataArray, fftSize, sampleRate) {
 }
 
 
-// ====== 倍音に負けない基本周波数抽出（ミニ四駆向け） ======
-function extractFundamentalStrong(peaks) {
-    // ピーク1本でも基本周波数として扱う
-    if (peaks.length === 1) return peaks[0].freq;
-    if (peaks.length < 1) return 0;
-
-    const freqs = peaks.map(p => p.freq);
-    const diffs = [];
-
-    for (let i = 0; i < freqs.length; i++) {
-        for (let j = i + 1; j < freqs.length; j++) {
-            const d = Math.abs(freqs[i] - freqs[j]);
-            if (d > 50 && d < 4000) diffs.push(d);
-        }
-    }
-
-    if (diffs.length === 0) return 0;
-
-    const clusters = {};
-    diffs.forEach(d => {
-        const key = Math.round(d / 10) * 10;
-        clusters[key] = (clusters[key] || 0) + 1;
-    });
-
-    const sorted = Object.entries(clusters).sort((a, b) => b[1] - a[1]);
-    const fundamental = Number(sorted[0][0]);
-
-    // ミニ四駆の基本周波数レンジ
-    if (fundamental < 150 || fundamental > 2500) return 0;
-
-    return fundamental;
-}
 
 // ====== 揺れ幅 ======
 function recordFundamental(f) {
@@ -385,35 +353,12 @@ function autoFilter(rpm, shakeHz) {
     return filteredRpm;
 }
 
-// ====== 無音判定（ミニ四駆専用） ======
-function isSilentHighPrecision() {
-    analyserTime.getByteTimeDomainData(timeData);
-
-    let sum = 0;
-    for (let i = 0; i < timeData.length; i++) {
-        sum += Math.abs(timeData[i] - 128);
-    }
-    const amp = sum / timeData.length;
-    const amplitudeSilent = amp < 4;
-
-    let energy = 0;
-    for (let i = 0; i < data4096.length; i++) {
-        energy += data4096[i];
-    }
-    const fftSilent = energy < -12000;
-
-    const peaks = detectPeaks(data4096, analyser4096.fftSize, sampleRate);
-    const peakSilent = peaks.length === 0;
-
-    return amplitudeSilent && fftSilent && peakSilent;
-}
-
 // ====== メインループ ======
 function mainLoop() {
     if (!isRunning) return;
     requestAnimationFrame(mainLoop);
 
-    analyser4096.getFloatFrequencyData(data4096);
+    analyser2048.getFloatFrequencyData(data2048);
     analyser16384.getFloatFrequencyData(data16384);
     analyserTime.getByteTimeDomainData(timeData);
 
@@ -423,8 +368,8 @@ function mainLoop() {
         shakeHzEl.textContent = "-- Hz";
         maxRpmBoxEl.textContent = "MAX RPM: --";
 
-        rpm4096El.textContent = "RPM: --";
-        shake4096El.textContent = "揺れ幅：-- Hz";
+        rpm2048El.textContent = "RPM: --";
+        shake2048El.textContent = "揺れ幅：-- Hz";
         rpm16384El.textContent = "RPM: --";
         shake16384El.textContent = "揺れ幅：-- Hz";
 
@@ -437,20 +382,20 @@ function mainLoop() {
         return;
     }
 
-    const peaks4096 = detectPeaks(data4096, analyser4096.fftSize, sampleRate);
+    const peaks2048 = detectPeaks(data2048, analyser2048.fftSize, sampleRate);
     const peaks16384 = detectPeaks(data16384, analyser16384.fftSize, sampleRate);
 
-    const fundamental4096 = extractFundamentalStrong(peaks4096);
+    const fundamental2048 = extractFundamentalStrong(peaks2048);
     const fundamental16384 = extractFundamentalStrong(peaks16384);
 
-    if (fundamental4096 === 0 && fundamental16384 === 0) return;
+    if (fundamental2048 === 0 && fundamental16384 === 0) return;
 
-    const fundamentalHz = fundamental4096 || fundamental16384;
+    const fundamentalHz = fundamental2048 || fundamental16384;
 
     recordFundamental(fundamentalHz);
     const shakeHz = getFundamentalShake();
 
-    const rpm4096 = fundamental4096 * 60;
+    const rpm2048 = fundamental2048 * 60;
     const rpm16384 = fundamental16384 * 60;
     const rpmBase = fundamentalHz * 60;
 
@@ -462,13 +407,13 @@ function mainLoop() {
     shakeHzEl.textContent = `${shakeHz.toFixed(1)} Hz`;
     maxRpmBoxEl.textContent = `MAX RPM: ${maxRpm.toFixed(0)}`;
 
-    rpm4096El.textContent = `RPM: ${rpm4096 ? rpm4096.toFixed(0) : "--"}`;
-    shake4096El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
+    rpm2048El.textContent = `RPM: ${rpm2048 ? rpm2048.toFixed(0) : "--"}`;
+    shake2048El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
 
     rpm16384El.textContent = `RPM: ${rpm16384 ? rpm16384.toFixed(0) : "--"}`;
     shake16384El.textContent = `揺れ幅：${shakeHz.toFixed(1)} Hz`;
 
-    drawFFT(fft4096Canvas, fft4096Canvas.getContext("2d"), data4096);
+    drawFFT(fft2048Canvas, fft2048Canvas.getContext("2d"), data2048);
     drawFFT(fft16384Canvas, fft16384Canvas.getContext("2d"), data16384);
     drawRpmHzGraph(
         rpmHzCanvas,
@@ -504,9 +449,9 @@ async function startAudio() {
     audioCtx = new AudioContext();
     sampleRate = audioCtx.sampleRate;
 
-    analyser4096 = audioCtx.createAnalyser();
-    analyser4096.fftSize = 4096;
-    data4096 = new Float32Array(analyser4096.frequencyBinCount);
+    analyser2048 = audioCtx.createAnalyser();
+    analyser2048.fftSize = 2048;
+    data2048 = new Float32Array(analyser2048.frequencyBinCount);
 
     analyser16384 = audioCtx.createAnalyser();
     analyser16384.fftSize = 16384;
@@ -517,7 +462,7 @@ async function startAudio() {
     timeData = new Uint8Array(analyserTime.fftSize);
 
     const source = audioCtx.createMediaStreamSource(micStream);
-    source.connect(analyser4096);
+    source.connect(analyser2048);
     source.connect(analyser16384);
     source.connect(analyserTime);
 
