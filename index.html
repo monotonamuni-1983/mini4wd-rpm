@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<h2>Mini4WD FFT Precision Analyzer ver110000</h2>
+<h2>Mini4WD FFT Precision Analyzer ver111000</h2>
 <button id="startButton">集音開始</button>
 <div id="status">ボタンを押してください</div>
 
@@ -65,7 +65,9 @@ async function startAudio() {
     fftSizes.forEach(size => {
         analysers[size] = audioCtx.createAnalyser();
         analysers[size].fftSize = size;
-        dataArrays[size] = new Float32Array(analyser.frequencyBinCount); // 修正: analyser → analysers[size]
+        
+        dataArrays[size] = new Float32Array(analysers[size].frequencyBinCount); // 修正: analyser → analysers[size]
+      
         source.connect(analysers[size]);
     });
     loop();
@@ -73,8 +75,8 @@ async function startAudio() {
 
 // 修正済みデータ配列取得の安定化
 function getPrecisePeak(data, fftSize, sampleRate) {
-    const minBin = Math.floor(80 * fftSize / sampleRate);
-    const maxBin = Math.floor(1000 * fftSize / sampleRate);
+    const minBin = Math.floor(50 * fftSize / sampleRate);
+    const maxBin = Math.floor(1500 * fftSize / sampleRate);
     let maxVal = -Infinity, maxIdx = -1;
     for (let i = minBin; i < maxBin; i++) {
         if (data[i] > maxVal) { maxVal = data[i]; maxIdx = i; }
