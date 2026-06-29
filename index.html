@@ -17,7 +17,7 @@
 </head>
 <body>
 
-<h2>Mini4WD FFT Precision Analyzer ver1111221111</h2>
+<h2>Mini4WD FFT Precision Analyzer ver11112321111</h2>
 <button id="startButton">集音開始</button>
 <div id="status">ボタンを押してください</div>
 
@@ -111,7 +111,7 @@ function loop() {
     const targetRpm = Math.min((totalRpm / totalWeight) * factor, 60000);
     smoothedRpm = smoothedRpm + (targetRpm - smoothedRpm) * SMOOTHING_FACTOR;
     
-    document.getElementById("rpmFinal").textContent = smoothedRpm.toFixed(1) + " RPM";
+    document.getElementById("rpmFinal").textContent = smoothedRpm.toFixed(0) + " RPM";
 }
 
 document.getElementById("startButton").addEventListener("click", () => {
