@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Mini4WD Ultra Precision Analyzer (4096 FFT + Calibration)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family: sans-serif;
+    padding: 20px;
+    background: #f5f7fb;
+    text-align: center;
+    color: #333;
+  }
+  h2 {
+    margin-bottom: 10px;
+  }
+  .display-box {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    margin: 10px auto;
+    max-width: 420px;
+  }
+  #rpmFinal {
+    font-size: 56px;
+    color: #007bff;
+    font-weight: bold;
+    margin-top: 5px;
+  }
+  button {
+    padding: 12px 24px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 10px;
+    border: none;
+    margin-bottom: 10px;
+  }
+  #startButton { background: #28a745; color: white; }
+  #stopButton  { background: #dc3545; color: white; }
+
+  #specCanvas {
+    width: 100%;
+    height: 140px;
+    background: #000;
+    border-radius: 10px;
+    margin: 10px 0;
+    display: block;
+  }
+
+  .control-box {
+    font-size: 14px;
+    margin-bottom: 10px;
+    max-width: 420px;
+    margin: 0 auto 15px;
+    text-align: left;
+  }
+
+  /* レンジスライダー */
+  .range-slider {
+    position: relative;
+    width: 100%;
+    height: 40px;
+    margin: 10px 0;
+  }
+  .range-slider input[type="range"] {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    -webkit-appearance: none;
+    background: none;
+  }
+  .range-slider input[type="range"]::-webkit-slider-thumb {
+    pointer-events: auto;
+    -webkit-appearance: none;
+    width: 26px;
+    height: 26px;
+    background: #ff4fd6; /* ネオンピンク */
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(255,79,214,0.7);
+  }
+  .range-slider input[type="range"]::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    background: #ff4fd6;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .slider-track {
+    position: absolute;
+    height: 6px;
+    background: #80c0ff;
+    border-radius: 3px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* キャリブレーション */
+  .cal-box {
+    max-width: 420px;
+    margin: 10px auto 20px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    font-size: 13px;
+    text-align: left;
+  }
+  .cal-box input[type="number"] {
+    width: 120px;
+    padding: 4px 6px;
+    font-size: 13px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    margin-right: 6px;
+  }
+  .cal-label {
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  .cal-info {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Ultra Precision RPM Meter (4096 FFT + Calibration)</h2>
+
+<button id="startButton">計測開始</button>
+<button id="stopButton">計測停止</button>
+
+<canvas id="specCanvas"></canvas>
+
+<div class="control-box">
+  <div>計測範囲 (RPM)</div>
+  <div class="range-slider">
+    <input type="range" id="minRpm" min="5000" max="60000" value="20000">
+    <input type="range" id="maxRpm" min="5000" max="60000" value="40000">
+    <div class="slider-track"></div>
+  </div>
+  <div style="margin-top:6px; font-size:14px;">
+    最小RPM: <span id="minRpmLabel">20000</span>
+    ／ 最大RPM: <span id="maxRpmLabel">40000</span>
+  </div>
+</div>
+
+<div class="cal-box">
+  <div class="cal-label">キャリブレーション（既知RPMで1回だけ合わせる）</div>
+  <div style="margin-bottom:6px;">
+    既知RPM:
+    <input type="number" id="knownRpmInput" placeholder="例: 30000">
+    <button id="applyCalButton" style="width:auto; padding:4px 10px; font-size:12px;">この値で合わせる</button>
+  </div>
+  <div class="cal-info">
+    現在の補正係数: <span id="calFactorLabel">1.0000</span><br>
+    ※ 端末ごとに1回だけ合わせれば、以降は自動で補正されます。
+  </div>
+</div>
+
+<div class="display-box">
+  <div>現在の回転数 (4096 FFT / キャリブレーション適用)</div>
+  <div id="rpmFinal">-- RPM</div>
+</div>
+
+<script>
+let audioCtx = null;
+let analyser = null;
+let dataArray = null;
+let running = false;
+let stream = null;
+
+// FFT設定
+const FFT_SIZE = 4096;
+
+// canvas
+const canvas = document.getElementById('specCanvas');
+const ctx = canvas.getContext('2d');
+
+// レンジスライダー
+const minSlider = document.getElementById("minRpm");
+const maxSlider = document.getElementById("maxRpm");
+const track = document.querySelector(".slider-track");
+const minLabel = document.getElementById("minRpmLabel");
+const maxLabel = document.getElementById("maxRpmLabel");
+
+// キャリブレーション
+let calFactor = 1.0;
+const calFactorLabel = document.getElementById("calFactorLabel");
+const knownRpmInput = document.getElementById("knownRpmInput");
+const applyCalButton = document.getElementById("applyCalButton");
+
+// スムージング用
+let lastRpm = null;
+const SMOOTH_ALPHA = 0.25; // 0〜1（小さいほどなめらか）
+
+// ローカルストレージから係数読み込み
+(function loadCalFactor() {
+  const saved = localStorage.getItem("mini4wd_cal_factor_4096");
+  if (saved !== null) {
+    const v = parseFloat(saved);
+    if (!isNaN(v) && v > 0 && v < 2) {
+      calFactor = v;
+    }
+  }
+  calFactorLabel.textContent = calFactor.toFixed(4);
+})();
+
+// レンジスライダー表示更新
+function updateLabels() {
+  minLabel.textContent = minSlider.value;
+  maxLabel.textContent = maxSlider.value;
+}
+function updateTrack() {
+  const minVal = parseInt(minSlider.value, 10);
+  const maxVal = parseInt(maxSlider.value, 10);
+  const minPercent = (minVal - minSlider.min) / (minSlider.max - minSlider.min) * 100;
+  const maxPercent = (maxVal - maxSlider.min) / (maxSlider.max - maxSlider.min) * 100;
+  track.style.left = minPercent + "%";
+  track.style.width = (maxPercent - minPercent) + "%";
+}
+minSlider.addEventListener("input", () => {
+  if (parseInt(minSlider.value, 10) > parseInt(maxSlider.value, 10)) {
+    minSlider.value = maxSlider.value;
+  }
+  updateTrack();
+  updateLabels();
+});
+maxSlider.addEventListener("input", () => {
+  if (parseInt(maxSlider.value, 10) < parseInt(minSlider.value, 10)) {
+    maxSlider.value = minSlider.value;
+  }
+  updateTrack();
+  updateLabels();
+});
+updateTrack();
+updateLabels();
+
+// キャリブレーション適用
+applyCalButton.addEventListener("click", () => {
+  const knownRpm = parseFloat(knownRpmInput.value);
+  if (!knownRpm || knownRpm <= 0) return;
+  if (!lastRpm || lastRpm <= 0) return;
+
+  // 現在の生RPM（補正前）を推定
+  const rawRpm = lastRpm / calFactor;
+  if (rawRpm <= 0) return;
+
+  const newFactor = knownRpm / rawRpm;
+  if (newFactor > 0 && newFactor < 2) {
+    calFactor = newFactor;
+    localStorage.setItem("mini4wd_cal_factor_4096", calFactor.toFixed(6));
+    calFactorLabel.textContent = calFactor.toFixed(4);
+  }
+});
+
+// Audio開始
+async function startAudio() {
+  if (running) return;
+  running = true;
+
+  // canvas内部解像度をCSSに合わせる
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = FFT_SIZE;
+
+  const binCount = analyser.frequencyBinCount;
+  dataArray = new Uint8Array(binCount); // Byteで線形スペクトル
+
+  const source = audioCtx.createMediaStreamSource(stream);
+  source.connect(analyser);
+
+  loop();
+}
+
+// Audio停止
+function stopAudio() {
+  running = false;
+  if (audioCtx) {
+    audioCtx.suspend();
+  }
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+  document.getElementById("rpmFinal").textContent = "-- RPM";
+}
+
+// ピーク検出（パラボラ補間）
+function getPrecisePeakHz(data, fftSize, sampleRate) {
+  const minRpm = parseInt(minSlider.value, 10);
+  const maxRpm = parseInt(maxSlider.value, 10);
+
+  const minFreq = minRpm / 60;
+  const maxFreq = maxRpm / 60;
+
+  const binToHz = sampleRate / fftSize;
+  const minBin = Math.floor(minFreq / binToHz);
+  const maxBin = Math.floor(maxFreq / binToHz);
+
+  const len = data.length;
+  const from = Math.max(1, Math.min(minBin, len - 2));
+  const to   = Math.max(2, Math.min(maxBin, len - 1));
+
+  let maxVal = -Infinity;
+  let maxIdx = -1;
+
+  for (let i = from; i <= to; i++) {
+    const v = data[i];
+    if (v > maxVal) {
+      maxVal = v;
+      maxIdx = i;
+    }
+  }
+
+  if (maxIdx <= from || maxIdx >= to) return 0;
+
+  const y1 = data[maxIdx - 1];
+  const y2 = data[maxIdx];
+  const y3 = data[maxIdx + 1];
+
+  const denom = (y1 - 2 * y2 + y3);
+  if (denom === 0) {
+    return maxIdx * binToHz;
+  }
+
+  const offset = (y1 - y3) / (2 * denom);
+  const peakBin = maxIdx + offset;
+
+  return peakBin * binToHz;
+}
+
+// メインループ（FFT描画＋RPM計算）
+function loop() {
+  if (!running) return;
+
+  requestAnimationFrame(loop);
+
+  const w = canvas.width;
+  const h = canvas.height;
+
+  analyser.getByteFrequencyData(dataArray);
+
+  // FFT描画
+  ctx.clearRect(0, 0, w, h);
+  ctx.beginPath();
+  ctx.strokeStyle = "#00ff9d"; // ネオン系グリーン
+  ctx.lineWidth = 1.2;
+
+  const step = dataArray.length / w;
+  const scale = h / 256;
+
+  for (let x = 0; x < w; x++) {
+    const bin = Math.floor(x * step);
+    const v = dataArray[bin]; // 0〜255
+    const y = h - v * scale;
+
+    if (x === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // ピーク周波数
+  const peakHz = getPrecisePeakHz(dataArray, analyser.fftSize, audioCtx.sampleRate);
+  if (peakHz > 0) {
+    const rawRpm = peakHz * 60;
+    const calibratedRpm = rawRpm * calFactor;
+
+    // スムージング
+    let displayRpm = calibratedRpm;
+    if (lastRpm !== null) {
+      displayRpm = lastRpm * (1 - SMOOTH_ALPHA) + calibratedRpm * SMOOTH_ALPHA;
+    }
+    lastRpm = displayRpm;
+
+    document.getElementById("rpmFinal").textContent = Math.round(displayRpm);
+  }
+}
+
+// ボタンイベント
+document.getElementById("startButton").addEventListener("click", () => {
+  if (!audioCtx || audioCtx.state === "suspended") {
+    startAudio();
+  } else {
+    audioCtx.resume();
+    running = true;
+    loop();
+  }
+});
+
+document.getElementById("stopButton").addEventListener("click", stopAudio);
+</script>
+</body>
+</html>
