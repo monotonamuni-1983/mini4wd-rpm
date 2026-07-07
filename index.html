@@ -1,4 +1,42 @@
-特化+5つファイル
+以下を加えたコード
+履歴一覧の項目も結果と同じタイミングで左右に動かす
+履歴一覧のプルダウンを2段にして、上3つ下2つにする
+スペクトラム表の横幅を75%にする
+ロックを押したら全ての数字が止まる
+ギヤ比を4.2:1,5:1,6.4:1,8.75:1,11.2:1を増やす
+比較表も3.4V追加
+計測条件で合わせた位置での電圧の行すべてを色変化させる
+タイヤは22.0～34.0mmまでの0.1mmきざみ
+1番上の、特化+5つファイルを消す
+計測条件と比較表を一つの枠におさめる
+使わないときはたたんでいる
+モーターの種類は以下を追加して
+* ノーマル
+* レブチューン
+* トルクチューン
+* アトミックチューン
+* ダッシュ1号
+* ダッシュ2号
+* ライトダッシュ
+* ハイパーダッシュ3
+* パワーダッシュ
+* スプリントダッシュ
+* ノーマルPRO
+* レブチューンPRO
+* トルクチューンPRO
+* アトミックチューンPRO
+* ライトダッシュPRO
+* ハイパーダッシュPRO
+* マッハダッシュPRO
+
+
+履歴、設定ボタンの大きさを115%
+計測条件のスライダーボタンをオーバルにして
+項目の間の間隔を少し広げる
+設定の項目ごとの間隔を広くする
+計測して出る数字を右詰めにする
+RPMとSPEEDの表示数字だけ少し大きくする
+
 
 
 <!DOCTYPE html>
@@ -9,6 +47,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
+
+    /* ============================================================
+       Base
+    ============================================================ */
     body {
       margin: 0;
       padding: 0;
@@ -17,7 +59,9 @@
       color: #333;
     }
 
-    /* ヘッダー */
+    /* ============================================================
+       Header
+    ============================================================ */
     .header {
       display: flex;
       justify-content: space-between;
@@ -47,15 +91,21 @@
       font-weight: 700;
       border: none;
       box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      transform: scale(1.15); /* 履歴・設定ボタン 115% */
     }
 
-    /* メイン */
+    /* ============================================================
+       Main Container
+    ============================================================ */
     .main-container {
       padding: 16px;
       max-width: 480px;
       margin: 0 auto;
     }
 
+    /* ============================================================
+       Card
+    ============================================================ */
     .card {
       background: #f5f7fc;
       border-radius: 16px;
@@ -70,20 +120,26 @@
       margin-bottom: 10px;
     }
 
-    /* FFTスペクトラム */
+    /* ============================================================
+       FFT Spectrum
+    ============================================================ */
     #waveCanvas {
-      width: 100%;
+      width: 75%;              /* 横幅75% */
       height: 160px;
       background: #ffffff;
       border-radius: 12px;
       box-shadow: inset 0 0 6px rgba(0,0,0,0.08);
+      margin: 0 auto;
+      display: block;
     }
 
-    /* RPM / SPEED 表示 */
+    /* ============================================================
+       RPM / SPEED Display
+    ============================================================ */
     .rpm-grid, .speed-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      gap: 12px; /* 間隔広げる */
       margin-top: 12px;
     }
 
@@ -93,19 +149,26 @@
       font-size: 0.9rem;
     }
 
-    .rpm-grid span:last-child, .speed-grid span:last-child {
+    .rpm-grid span:last-child,
+    .speed-grid span:last-child {
       font-weight: 700;
       margin-top: 2px;
+      text-align: right;       /* 右詰め */
+      font-size: 1.2rem;       /* 数字だけ大きく */
     }
 
-    /* 状態ライン */
+    /* ============================================================
+       Status Line
+    ============================================================ */
     .status-line {
       margin-top: 12px;
       font-size: 0.9rem;
       color: #666;
     }
 
-    /* ボタン */
+    /* ============================================================
+       Buttons
+    ============================================================ */
     .realtime-buttons {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -131,7 +194,9 @@
       color: #4a6cff;
     }
 
-    /* スライダー */
+    /* ============================================================
+       Sliders (Oval thumb)
+    ============================================================ */
     input[type="range"] {
       width: 100%;
       -webkit-appearance: none;
@@ -139,19 +204,21 @@
       border-radius: 999px;
       background: #e3e7f5;
       outline: none;
-      margin-top: 6px;
+      margin-top: 10px; /* 間隔広げる */
     }
 
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 20px;
-      height: 20px;
+      width: 28px;         /* オーバル */
+      height: 18px;
       background: #ffffff;
-      border-radius: 50%;
+      border-radius: 999px;
       border: 2px solid #4a6cff;
     }
 
-    /* 比較表 */
+    /* ============================================================
+       Comparison Table
+    ============================================================ */
     .comparison-table {
       width: 100%;
       border-collapse: collapse;
@@ -165,7 +232,8 @@
       text-align: right;
     }
 
-    .comparison-table th:first-child, .comparison-table td:first-child {
+    .comparison-table th:first-child,
+    .comparison-table td:first-child {
       text-align: left;
     }
 
@@ -177,7 +245,9 @@
       background: rgba(255, 150, 200, 0.18);
     }
 
-    /* モーダル共通 */
+    /* ============================================================
+       Modal Common
+    ============================================================ */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -206,10 +276,13 @@
       display: none;
     }
 
-    /* 履歴フィルター */
+    /* ============================================================
+       History Filter (2段構造)
+    ============================================================ */
     .history-filter {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, auto);
       gap: 10px;
       margin-bottom: 12px;
     }
@@ -222,7 +295,9 @@
       font-size: 0.9rem;
     }
 
-    /* 履歴リスト */
+    /* ============================================================
+       History List
+    ============================================================ */
     .history-header-fixed {
       position: sticky;
       top: 0;
@@ -246,9 +321,12 @@
       padding: 8px;
       border-bottom: 1px solid #e3e7f5;
       font-size: 0.9rem;
+      transition: transform 0.15s linear; /* FFTと同期して左右に動かす */
     }
 
-    /* 保存モーダル */
+    /* ============================================================
+       Save Modal
+    ============================================================ */
     .text-input {
       width: 100%;
       padding: 10px;
@@ -277,7 +355,9 @@
       border: none;
     }
 
-    /* 設定モーダル */
+    /* ============================================================
+       Settings Modal
+    ============================================================ */
     .help-btn {
       position: absolute;
       top: 10px;
@@ -300,6 +380,11 @@
       font-size: 0.95rem;
       line-height: 1.4;
     }
+
+    .setting-item {
+      margin-bottom: 18px; /* 設定項目の間隔を広げる */
+    }
+
   </style>
 </head>
 <body>
@@ -345,10 +430,11 @@
       </div>
     </section>
 
-    <!-- ===== 計測条件 ===== -->
-    <section class="card">
-      <div class="card-title">計測条件</div>
+    <!-- ===== 計測条件 + 比較表（折りたたみ） ===== -->
+    <details class="card" id="conditionBlock">
+      <summary class="card-title">計測条件・比較表</summary>
 
+      <!-- 計測条件 -->
       <div class="setting-row">
         <span>電圧</span><span id="voltageLabel">2.8 V</span>
       </div>
@@ -357,32 +443,33 @@
       <div class="setting-row">
         <span>ギヤ比</span><span id="gearLabel">3.5:1</span>
       </div>
-      <input id="gearRange" type="range" min="0" max="4" step="1" value="0" />
+      <input id="gearRange" type="range" min="0" max="7" step="1" value="0" />
 
       <div class="setting-row">
         <span>タイヤ径</span><span id="tireLabel">26.0 mm</span>
       </div>
-      <input id="tireRange" type="range" min="24" max="30" step="0.5" value="26.0" />
-    </section>
+      <input id="tireRange" type="range" min="22.0" max="34.0" step="0.1" value="26.0" />
 
-    <!-- ===== 比較表 ===== -->
-    <section class="card">
-      <div class="card-title">比較表</div>
+      <!-- 比較表 -->
       <table class="comparison-table">
         <thead>
           <tr>
             <th>電圧 (V)</th>
             <th>モーターRPM</th>
-            <th>3.5:1 km/h</th>
-            <th>3.7:1 km/h</th>
-            <th>4.0:1 km/h</th>
-            <th>4.2:1 km/h</th>
-            <th>4.5:1 km/h</th>
+            <th>3.5:1</th>
+            <th>3.7:1</th>
+            <th>4.0:1</th>
+            <th>4.2:1</th>
+            <th>5.0:1</th>
+            <th>6.4:1</th>
+            <th>8.75:1</th>
+            <th>11.2:1</th>
           </tr>
         </thead>
         <tbody id="comparisonBody"></tbody>
       </table>
-    </section>
+
+    </details>
 
   </div><!-- main-container 終了 -->
 
@@ -392,9 +479,12 @@
       <div class="modal-title">履歴一覧</div>
 
       <div class="history-filter">
+        <!-- 上段3つ -->
         <select id="filterVoltage"><option value="">電圧指定なし</option></select>
         <select id="filterGear"><option value="">ギヤ比指定なし</option></select>
         <select id="filterTire"><option value="">タイヤ径指定なし</option></select>
+
+        <!-- 下段2つ -->
         <select id="filterMotor"><option value="">モーター指定なし</option></select>
         <select id="filterName"><option value="">名前指定なし</option></select>
       </div>
@@ -430,13 +520,25 @@
         <div class="setting-label">モーター種類</div>
         <select id="motorTypeSelect" class="text-input">
           <option value="">選択なし</option>
-          <option value="アトミック">アトミック</option>
-          <option value="レブ">レブ</option>
-          <option value="トルク">トルク</option>
-          <option value="ハイパーダッシュ">ハイパーダッシュ</option>
-          <option value="マッハダッシュ">マッハダッシュ</option>
-          <option value="パワーダッシュ">パワーダッシュ</option>
+
+          <!-- 追加されたモーター種類 -->
+          <option value="ノーマル">ノーマル</option>
+          <option value="レブチューン">レブチューン</option>
+          <option value="トルクチューン">トルクチューン</option>
+          <option value="アトミックチューン">アトミックチューン</option>
+          <option value="ダッシュ1号">ダッシュ1号</option>
+          <option value="ダッシュ2号">ダッシュ2号</option>
           <option value="ライトダッシュ">ライトダッシュ</option>
+          <option value="ハイパーダッシュ3">ハイパーダッシュ3</option>
+          <option value="パワーダッシュ">パワーダッシュ</option>
+          <option value="スプリントダッシュ">スプリントダッシュ</option>
+          <option value="ノーマルPRO">ノーマルPRO</option>
+          <option value="レブチューンPRO">レブチューンPRO</option>
+          <option value="トルクチューンPRO">トルクチューンPRO</option>
+          <option value="アトミックチューンPRO">アトミックチューンPRO</option>
+          <option value="ライトダッシュPRO">ライトダッシュPRO</option>
+          <option value="ハイパーダッシュPRO">ハイパーダッシュPRO</option>
+          <option value="マッハダッシュPRO">マッハダッシュPRO</option>
         </select>
       </div>
 
@@ -489,7 +591,7 @@
   </div>
 
 <!-- ============================= -->
-<!-- JS1 : UIイベント（モーダル・ボタン） -->
+<!-- JS1 : UIイベント（モーダル・ボタン・ロック制御） -->
 <!-- ============================= -->
 <script>
 const UI = {
@@ -558,7 +660,7 @@ UI.startBtn.addEventListener("click", () => {
   }
 });
 
-/* ロック */
+/* ロック（全ての数字を停止） */
 UI.lockBtn.addEventListener("click", () => {
   if (!locked) {
     locked = true;
@@ -636,8 +738,17 @@ const PRESET = {
   poleLabel: document.getElementById("poleMotorLabel"),
 };
 
-/* 最新ギヤ比リスト */
-const gearOptions = ["3.5:1", "3.7:1", "4.0:1", "4.2:1", "4.5:1"];
+/* ギヤ比（拡張版） */
+const gearOptions = [
+  "3.5:1",
+  "3.7:1",
+  "4.0:1",
+  "4.2:1",
+  "5.0:1",
+  "6.4:1",
+  "8.75:1",
+  "11.2:1"
+];
 
 /* プリセット読み込み */
 function loadPresets() {
@@ -723,7 +834,6 @@ PRESET.load.addEventListener("input", () => {
 /* 初期ロード */
 loadPresets();
 </script>
-
 <!-- ============================= -->
 <!-- JS3 : main.js（8192 FFT + Lock + History + Comparison） -->
 <!-- ============================= -->
@@ -879,6 +989,15 @@ function loopFFT() {
   }
   ctx.stroke();
 
+  /* 履歴行を FFT と同期して左右に動かす */
+  const offset = Math.sin(Date.now() / 120) * 6;
+  document.querySelectorAll(".history-row").forEach(row => {
+    if (!locked) row.style.transform = `translateX(${offset}px)`;
+  });
+
+  /* ロック中は数字を更新しない */
+  if (locked) return;
+
   const peakHz = getPrecisePeakHz(dataArray, analyser.fftSize, audioContext.sampleRate);
   if (peakHz > 0) {
     const rawRpm = peakHz * 60;
@@ -887,13 +1006,11 @@ function loopFFT() {
     currentRpm = adjustedRpm;
     currentSpeed = speed;
 
-    if (!locked) {
-      if (maxRpmVal === 0 || adjustedRpm > maxRpmVal) maxRpmVal = adjustedRpm;
-      if (minRpmVal === 0 || adjustedRpm < minRpmVal) minRpmVal = adjustedRpm;
+    if (maxRpmVal === 0 || adjustedRpm > maxRpmVal) maxRpmVal = adjustedRpm;
+    if (minRpmVal === 0 || adjustedRpm < minRpmVal) minRpmVal = adjustedRpm;
 
-      if (maxSpeedVal === 0 || speed > maxSpeedVal) maxSpeedVal = speed;
-      if (minSpeedVal === 0 || speed < minSpeedVal) minSpeedVal = speed;
-    }
+    if (maxSpeedVal === 0 || speed > maxSpeedVal) maxSpeedVal = speed;
+    if (minSpeedVal === 0 || speed < minSpeedVal) minSpeedVal = speed;
 
     rpmNow.textContent = Math.round(adjustedRpm);
     rpmMax.textContent = Math.round(maxRpmVal);
@@ -903,7 +1020,7 @@ function loopFFT() {
     speedTop.textContent = maxSpeedVal.toFixed(2) + " km/h";
     speedMin.textContent = minSpeedVal.toFixed(2) + " km/h";
 
-    if (locked) generateComparisonTableFromLock();
+    generateComparisonTableFromLock();
   }
 }
 
@@ -915,7 +1032,6 @@ function lockCurrent() {
     rpm: currentRpm,
     speed: currentSpeed
   };
-  generateComparisonTableFromLock();
 }
 
 function unlockCurrent() {
@@ -931,6 +1047,7 @@ function generateComparisonTableFromLock() {
 
   const baseRpm = lockedSnapshot.rpm;
   const tire = parseFloat(document.getElementById("tireRange").value);
+  const currentVoltage = parseFloat(document.getElementById("voltageRange").value).toFixed(1);
 
   comparisonBody.innerHTML = "";
 
@@ -938,11 +1055,13 @@ function generateComparisonTableFromLock() {
     const voltage = v.toFixed(1);
     const tr = document.createElement("tr");
 
+    if (voltage === currentVoltage) tr.classList.add("highlight-row");
+
     const tdV = document.createElement("td");
     tdV.textContent = voltage + " V";
     tr.appendChild(tdV);
 
-    const rpm = Math.round(baseRpm * (v / parseFloat(document.getElementById("voltageRange").value)));
+    const rpm = Math.round(baseRpm * (v / currentVoltage));
     const tdR = document.createElement("td");
     tdR.textContent = rpm;
     tr.appendChild(tdR);
@@ -1105,4 +1224,3 @@ buildFilterOptions();
 
 </body>
 </html>
-
